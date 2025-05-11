@@ -1,5 +1,6 @@
 package com.example.blablacar.service;
 
+import com.example.blablacar.dto.LoginRequest;
 import com.example.blablacar.model.User;
 import com.example.blablacar.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,7 +32,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String verify(User user) {
+    public String verify(LoginRequest user) {
+        System.out.println("🔑 Verifying: " + user.getEmail() + " with password: " + user.getPassword());
         Authentication authentication =
                 authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
 
