@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.example</groupId>
-    <artifactId>AuthenticationSpringBoot</artifactId>
+    <artifactId>rideshare-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>AuthenticationSpringBoot</name>
-    <description>AuthenticationSpringBoot</description>
+    <name>rideshare-backend</name>
+    <description>rideshare-backend</description>
     <url/>
     <licenses>
         <license/>
@@ -78,7 +78,23 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 
     <build>

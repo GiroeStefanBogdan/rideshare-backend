@@ -8,4 +8,6 @@ import org.springframework.stereotype.Service;
 public interface UserService {
 
     User registerUser(User user);
+
+    String verify(User user);
 }
