@@ -1,6 +1,7 @@
 package com.example.blablacar.service;
 
 import com.example.blablacar.dto.LoginRequest;
+import com.example.blablacar.model.AuthProvider;
 import com.example.blablacar.model.User;
 import com.example.blablacar.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,12 +29,14 @@ public class UserServiceImpl implements UserService {
         System.out.println("🔐 Encoding and saving: " + user.getEmail());
         System.out.println("🔐 Password: " + user.getPassword());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setProvider(AuthProvider.LOCAL);
+        user.setProviderId(null);
+        user.setRole("ROLE_USER");
         return userRepository.save(user);
     }
 
     @Override
     public String verify(LoginRequest user) {
-        System.out.println("🔑 Verifying: " + user.getEmail() + " with password: " + user.getPassword());
         Authentication authentication =
                 authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
 
