@@ -23,6 +23,7 @@ public class UserServiceImpl implements UserService {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
     }
+
     @Override
     public User registerUser(User user) {
         System.out.println("🔐 Encoding and saving: " + user.getEmail());
@@ -37,9 +38,9 @@ public class UserServiceImpl implements UserService {
         Authentication authentication =
                 authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
 
-        if(authentication.isAuthenticated()){
+        if (authentication.isAuthenticated()) {
             return jwtService.generateToken(user.getEmail());
         }
-        return "Fail";
+        return null;
     }
 }
