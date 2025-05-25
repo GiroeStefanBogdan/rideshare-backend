@@ -1,18 +1,22 @@
 package com.example.blablacar.controller;
 
+import com.example.blablacar.dto.UserResponse;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * Controller for authentication-related endpoints
  */
+
+@RequestMapping("/api")
 @RestController
 public class DashboardController {
 
-
-    @GetMapping("/greeting")
-    public Map<String, String> home() {
-        return Map.of("message", "Welcome, authenticated user!");
+    @GetMapping("/dashboard")
+    public ResponseEntity<UserResponse> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(new UserResponse(userDetails.getUsername()));
     }
+
 }
