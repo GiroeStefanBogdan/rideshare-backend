@@ -32,9 +32,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String verify(LoginRequest user) {
-        System.out.println("🔑 Verifying: " + user.getEmail() + " with password: " + user.getPassword());
-        Authentication authentication =
-                authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
 
         if (authentication.isAuthenticated()) {
             return jwtService.generateToken(user.getEmail());
