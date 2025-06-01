@@ -36,13 +36,10 @@ public class JwtFilter extends OncePerRequestFilter {
         String email = null;
 
 
-        // 🔍 2️⃣ If no header token, look for token in cookies
         if (request.getCookies() != null) {
             for (var cookie : request.getCookies()) {
-                System.out.println("🔍 JwtFilter: Checking cookie: " + cookie.getName());
                 if ("token".equals(cookie.getName())) {
                     token = cookie.getValue();
-                    System.out.println("✅ JwtFilter: Token found in cookie: " + token);
                     break;
                 }
             }
@@ -52,14 +49,8 @@ public class JwtFilter extends OncePerRequestFilter {
         if (token != null) {
             try {
                 email = jwtService.extractEmail(token);
-                System.out.println("🔍 JwtFilter: Extracted email from token: " + email);
-            } catch (Exception e) { // SignatureException -> Token is invalid jwtService.extractEmail(token);
-                System.out.println("⚠️ JwtFilter: Invalid token (signature mismatch?). Ignoring it. " + e.getMessage());
-                ResponseCookie clearCookie = ResponseCookie.from("token", "")
-                        .httpOnly(true)
-                        .path("/")
-                        .maxAge(0)
-                        .build();
+            } catch (Exception e) { // Token is invalid jwtService.extractEmail(token);
+                ResponseCookie clearCookie = ResponseCookie.from("token", "").httpOnly(true).path("/").maxAge(0).build();
                 response.setHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
             }
         }
