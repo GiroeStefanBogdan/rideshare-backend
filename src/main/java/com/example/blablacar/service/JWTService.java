@@ -9,15 +9,12 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-
-import static org.yaml.snakeyaml.tokens.Token.ID.Key;
 
 @Service
 public class JWTService {
@@ -42,7 +39,7 @@ public class JWTService {
                 .add(claims)
                 .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 60 * 60 * 24)) // Jwt valid for 24 hours
+                .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24)) // Jwt valid for 24 hours
                 .and()
                 .signWith(getKey())
                 .compact();
@@ -78,11 +75,11 @@ public class JWTService {
         return (userName.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    private boolean isTokenExpired(String token){
+    private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
-    private Date extractExpiration(String token){
+    private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 }
