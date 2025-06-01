@@ -22,7 +22,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public String getPassword() {
-        System.out.println("🔑 DB Password Hash: " + user.getPassword());
         return user.getPassword();
     }
 
@@ -48,9 +47,8 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return  true;
+        return true;
     }
-
 
 
 }
