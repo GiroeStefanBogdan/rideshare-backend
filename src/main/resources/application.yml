@@ -33,3 +33,6 @@ logging:
     org.springframework.security.authentication: DEBUG
     org.springframework.security.web: DEBUG
     com.example.blablacar: DEBUG
+
+jwt:
+  secret: ${JWT_SECRET}
