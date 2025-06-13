@@ -1,14 +1,15 @@
 package com.example.blablacar.controller;
 
 import com.example.blablacar.dto.LoginRequest;
+import com.example.blablacar.dto.UserRegistrationRequest;
 import com.example.blablacar.model.User;
 import com.example.blablacar.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,12 +27,12 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public User register(@RequestBody User user) {
-        return userService.registerUser(user);
+    public User register(@Valid @RequestBody UserRegistrationRequest registerRequest) {
+        return userService.registerUser(registerRequest);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Validated LoginRequest user) {
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequest user) {
         String token = userService.verify(user);
 
         if (token == null) {
