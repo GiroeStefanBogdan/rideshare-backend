@@ -1,4 +1,4 @@
-package com.example.blablacar.model;
+package com.example.blablacar.enums;
 
 /**
  * Enum representing the authentication provider types
