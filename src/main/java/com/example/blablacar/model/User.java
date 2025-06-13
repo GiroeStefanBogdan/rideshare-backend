@@ -1,16 +1,28 @@
 package com.example.blablacar.model;
 
+import com.example.blablacar.enums.AuthProvider;
+import com.example.blablacar.enums.Gender;
+import com.example.blablacar.enums.Role;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
  * Entity class representing a user in the system
  */
+@Builder
+@AllArgsConstructor
+@Setter
+@Getter
 @Entity
 @Table(name = "users", uniqueConstraints = {
-    @UniqueConstraint(columnNames = "email")
+        @UniqueConstraint(columnNames = "email")
 })
 public class User {
 
@@ -34,7 +46,19 @@ public class User {
 
     private String providerId;
 
-    private String role;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
+    @Column
+    private LocalDate birthday;
+
+    @Column(nullable = false)
+    private String phoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private Gender gender;
 
     // Default constructor required by JPA
     public User() {
@@ -47,7 +71,18 @@ public class User {
         this.password = password;
         this.provider = AuthProvider.LOCAL;
         this.providerId = null;
-        this.role = "ROLE_USER";
+        this.role = Role.ROLE_USER;
+    }
+
+    // Constructor for traditional authentication
+    public User(String name, String email, String password, Gender gender) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.provider = AuthProvider.LOCAL;
+        this.providerId = null;
+        this.role = Role.ROLE_USER;
+        this.gender = gender;
     }
 
     // Constructor for OAuth2 authentication
@@ -56,63 +91,17 @@ public class User {
         this.email = email;
         this.provider = provider;
         this.providerId = providerId;
-        this.role = "ROLE_USER";
+        this.role = Role.ROLE_USER;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
+    // Constructor for OAuth2 authentication
+    public User(String name, String email, AuthProvider provider, String providerId, Gender gender) {
         this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public AuthProvider getProvider() {
-        return provider;
-    }
-
-    public void setProvider(AuthProvider provider) {
         this.provider = provider;
-    }
-
-    public String getProviderId() {
-        return providerId;
-    }
-
-    public void setProviderId(String providerId) {
         this.providerId = providerId;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
+        this.role = Role.ROLE_USER;
+        this.gender = gender;
     }
 
     @Override
@@ -136,6 +125,7 @@ public class User {
                 ", email='" + email + '\'' +
                 ", provider=" + provider +
                 ", role='" + role + '\'' +
+                ", gender=" + gender +
                 '}';
     }
 }
