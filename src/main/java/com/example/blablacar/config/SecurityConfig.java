@@ -27,17 +27,16 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final JwtFilter jwtFilter;
 
-
     @Autowired
-    public SecurityConfig(CustomUserDetailsService userDetailsService, JwtFilter jwtFilter) {
+    public SecurityConfig(final CustomUserDetailsService userDetailsService, final JwtFilter jwtFilter) {
         this.userDetailsService = userDetailsService;
         this.jwtFilter = jwtFilter;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
         return http
-                .csrf(csrf -> csrf.disable()) // ✅ DISABLE CSRF
+                .csrf(AbstractHttpConfigurer::disable) // ✅ DISABLE CSRF
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 .authorizeHttpRequests(request -> request
@@ -71,7 +70,7 @@ public class SecurityConfig {
 
 
     @Bean
-    public AuthenticationManager authenticationManagerBean(AuthenticationConfiguration config) throws Exception {
-        return  config.getAuthenticationManager();
+    public AuthenticationManager authenticationManagerBean(final AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 }
