@@ -1,4 +1,4 @@
-package com.example.blablacar.model;
+package com.example.blablacar.model.user;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,7 +17,7 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singleton(new SimpleGrantedAuthority(user.getRole()));
+        return Collections.singleton(new SimpleGrantedAuthority(user.getRole().toString()));
     }
 
     @Override

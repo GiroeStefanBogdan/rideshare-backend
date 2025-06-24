@@ -1,31 +1,39 @@
-package com.example.blablacar.model;
+package com.example.blablacar.model.user;
 
-import jakarta.persistence.*;
+import com.example.blablacar.model.AuthProvider;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import org.hibernate.annotations.ColumnDefault;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * Entity class representing a user in the system
  */
 @Entity
-@Table(name = "users", uniqueConstraints = {
-    @UniqueConstraint(columnNames = "email")
-})
+@Table(name = "users")
 public class User {
 
     @Id
     @GeneratedValue
     @Column(nullable = false, updatable = false)
-    private UUID id;
-
+    private long id;
 
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(length = 100)
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -34,7 +42,25 @@ public class User {
 
     private String providerId;
 
-    private String role;
+    @Enumerated
+    @Column(nullable = false)
+    @ColumnDefault("1")
+    private Role role;
+
+    @Column(nullable = false, length = 20)
+    private String phoneNumber;
+
+    @OneToMany(mappedBy = "reviewer")
+    private List<UserReview> reviewsGiven;
+
+    @OneToMany(mappedBy = "targetUser")
+    private List<UserReview> reviewsReceived;
+
+    @OneToOne(mappedBy = "user")
+    private UserDetails userDetails;
+
+    @OneToMany(mappedBy = "user")
+    private List<UserCar> cars;
 
     // Default constructor required by JPA
     public User() {
@@ -47,7 +73,7 @@ public class User {
         this.password = password;
         this.provider = AuthProvider.LOCAL;
         this.providerId = null;
-        this.role = "ROLE_USER";
+        this.role = Role.USER;
     }
 
     // Constructor for OAuth2 authentication
@@ -56,14 +82,14 @@ public class User {
         this.email = email;
         this.provider = provider;
         this.providerId = providerId;
-        this.role = "ROLE_USER";
+        this.role = Role.USER;
     }
 
-    public UUID getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -107,11 +133,11 @@ public class User {
         this.providerId = providerId;
     }
 
-    public String getRole() {
+    public Role getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(final Role role) {
         this.role = role;
     }
 
