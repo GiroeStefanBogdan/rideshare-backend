@@ -1,6 +1,5 @@
 package com.example.blablacar.controller;
 
-import com.example.blablacar.dto.UserResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
