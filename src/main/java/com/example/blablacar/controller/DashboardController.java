@@ -10,13 +10,12 @@ import org.springframework.web.bind.annotation.*;
  * Controller for authentication-related endpoints
  */
 
-@RequestMapping("/api")
 @RestController
 public class DashboardController {
 
     @GetMapping("/dashboard")
-    public ResponseEntity<UserResponse> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(new UserResponse(userDetails.getUsername()));
+    public ResponseEntity<String> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(userDetails.getUsername());
     }
 
 }
