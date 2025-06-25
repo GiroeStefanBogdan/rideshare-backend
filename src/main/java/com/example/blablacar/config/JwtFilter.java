@@ -45,24 +45,20 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
 
-        // 🔍 3️⃣ Extract email from token if present
-        if (token != null) {
+
+        if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 email = jwtService.extractEmail(token);
-            } catch (Exception e) { // Token is invalid jwtService.extractEmail(token);
+                UserDetails userDetails = context.getBean(CustomUserDetailsService.class).loadUserByUsername(email);
+                if (jwtService.validateToken(token, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception e) {
                 ResponseCookie clearCookie = ResponseCookie.from("token", "").httpOnly(true).path("/").maxAge(0).build();
                 response.setHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
-            }
-        }
-
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = context.getBean(CustomUserDetailsService.class).loadUserByUsername(email);
-
-            if (jwtService.validateToken(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
         filterChain.doFilter(request, response);
