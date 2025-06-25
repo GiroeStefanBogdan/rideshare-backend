@@ -30,20 +30,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User registerUser(UserRegistrationRequest userRegistrationRequest) {
-        if (userRepository.existsByEmail(userRegistrationRequest.getEmail())) {
+        if (userRepository.existsByEmail(userRegistrationRequest.email())) {
             throw new EmailAlreadyExistsException("Email is already registered");
         }
-        userRegistrationRequest.setPassword(passwordEncoder.encode(userRegistrationRequest.getPassword()));
         User user = User.builder()
-                .name(userRegistrationRequest.getName())
-                .email(userRegistrationRequest.getEmail())
-                .password(userRegistrationRequest.getPassword())
+                .name(userRegistrationRequest.name())
+                .email(userRegistrationRequest.email())
+                .password(userRegistrationRequest.password())
                 .provider(AuthProvider.LOCAL)
                 .providerId(null)
                 .role(Role.ROLE_USER)
-                .birthday(userRegistrationRequest.getBirthday())
-                .phoneNumber(userRegistrationRequest.getPhoneNumber())
-                .gender(userRegistrationRequest.getGender())
+                .birthday(userRegistrationRequest.birthday())
+                .phoneNumber(userRegistrationRequest.phoneNumber())
+                .gender(userRegistrationRequest.gender())
+                .password(passwordEncoder.encode(userRegistrationRequest.password()))
                 .build();
         return userRepository.save(user);
     }
