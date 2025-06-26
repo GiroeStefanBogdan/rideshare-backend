@@ -3,7 +3,6 @@ package com.example.blablacar.model.user;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import java.util.Collection;
 import java.util.Collections;
 
@@ -11,7 +10,7 @@ public class UserPrincipal implements UserDetails {
 
     private final User user;
 
-    public UserPrincipal(User user) {
+    public UserPrincipal(final User user) {
         this.user = user;
     }
 
@@ -22,7 +21,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public String getPassword() {
-        System.out.println("🔑 DB Password Hash: " + user.getPassword());
         return user.getPassword();
     }
 
@@ -48,9 +46,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return  true;
+        return true;
     }
-
-
-
 }

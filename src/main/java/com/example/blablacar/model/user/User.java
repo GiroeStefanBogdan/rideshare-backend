@@ -12,15 +12,16 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * Entity class representing a user in the system
+ * Entity class representing a user in the system.
  */
 @Entity
 @Table(name = "users")
-public class User {
+public class User implements Serializable {
 
     @Id
     @GeneratedValue
@@ -142,7 +143,7 @@ public class User {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public final boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
@@ -150,12 +151,12 @@ public class User {
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
         return Objects.hash(id);
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
         return "User{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
