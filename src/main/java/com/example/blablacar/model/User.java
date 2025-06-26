@@ -1,24 +1,30 @@
 package com.example.blablacar.model;
 
-import jakarta.persistence.*;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Entity class representing a user in the system
+ * Entity class representing a user in the system.
  */
 @Entity
 @Table(name = "users", uniqueConstraints = {
-    @UniqueConstraint(columnNames = "email")
+        @UniqueConstraint(columnNames = "email")
 })
-public class User {
+public class User implements Serializable {
 
     @Id
     @GeneratedValue
     @Column(nullable = false, updatable = false)
     private UUID id;
-
 
     @Column(nullable = false)
     private String name;
@@ -116,7 +122,7 @@ public class User {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public final boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
@@ -124,12 +130,12 @@ public class User {
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
         return Objects.hash(id);
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
         return "User{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
