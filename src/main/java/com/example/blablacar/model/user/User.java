@@ -57,7 +57,7 @@ public class User {
     private List<UserReview> reviewsReceived;
 
     @OneToOne(mappedBy = "user")
-    private UserDetails userDetails;
+    private UserInfo userInfo;
 
     @OneToMany(mappedBy = "user")
     private List<UserCar> cars;

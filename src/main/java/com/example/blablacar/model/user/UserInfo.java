@@ -13,8 +13,8 @@ import jakarta.persistence.Table;
  * Since: 24.06.2025
  */
 @Entity
-@Table(name = "user_details")
-public class UserDetails {
+@Table(name = "user_info")
+public class UserInfo {
 
     @Id
     private long id;
