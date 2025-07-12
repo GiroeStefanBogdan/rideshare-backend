@@ -21,6 +21,7 @@ public class UserCar implements Serializable {
 
     @Id
     @GeneratedValue
+    @Column(nullable = false, updatable = false)
     private long id;
 
     @ManyToOne
