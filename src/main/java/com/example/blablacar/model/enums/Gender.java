@@ -1,4 +1,4 @@
-package com.example.blablacar.enums;
+package com.example.blablacar.model.enums;
 
 /**
  * Enum representing the sex of a user (M or F)

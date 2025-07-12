@@ -2,6 +2,7 @@ package com.example.blablacar.config;
 
 import com.example.blablacar.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,16 +25,16 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
-    private final JwtFilter jwtFilter;
+//    private final JwtFilter jwtFilter;
 
     @Autowired
     public SecurityConfig(final CustomUserDetailsService userDetailsService, final JwtFilter jwtFilter) {
         this.userDetailsService = userDetailsService;
-        this.jwtFilter = jwtFilter;
+//        this.jwtFilter = jwtFilter;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter jwtFilter) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .headers(headers -> headers

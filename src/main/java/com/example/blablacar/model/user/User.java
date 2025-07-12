@@ -1,23 +1,15 @@
 package com.example.blablacar.model.user;
 
-import com.example.blablacar.enums.AuthProvider;
-import com.example.blablacar.enums.Gender;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import com.example.blablacar.model.enums.Gender;
+import com.example.blablacar.model.enums.Role;
+import com.example.blablacar.model.enums.AuthProvider;
+import jakarta.persistence.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.io.Serializable;
-import java.util.List;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
-import com.example.blablacar.enums.Role;
 
 /**
  * Entity class representing a user in the system.
@@ -46,8 +38,9 @@ public class User implements Serializable {
 
     private String providerId;
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated
     @Column(nullable = false)
+    @ColumnDefault("1")
     private Role role;
 
     @Column(nullable = false, length = 20)
@@ -75,15 +68,6 @@ public class User implements Serializable {
     public User() {
     }
 
-    // Constructor for traditional authentication
-    public User(String name, String email, String password) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-        this.provider = AuthProvider.LOCAL;
-        this.providerId = null;
-        this.role = Role.ROLE_USER;
-    }
 
     // Constructor for traditional authentication
     public User(String name, String email, String password, Gender gender) {
@@ -104,6 +88,20 @@ public class User implements Serializable {
         this.providerId = providerId;
         this.role = Role.ROLE_USER;
         this.gender = gender;
+    }
+
+    // For UserPrincipal
+    public User(User user) {
+        this.id = user.id;
+        this.name = user.name;
+        this.email = user.email;
+        this.password = user.password;
+        this.provider = user.provider;
+        this.providerId = user.providerId;
+        this.role = user.role;
+        this.phoneNumber = user.phoneNumber;
+        this.birthday = user.birthday;
+        this.gender = user.gender;
     }
 
     public long getId() {
@@ -178,55 +176,39 @@ public class User implements Serializable {
         this.birthday = birthday;
     }
 
-    public Gender getGender() {
-        return gender;
-    }
 
-    public void setGender(Gender gender) {
-        this.gender = gender;
-    }
-
-    public List<UserReview> getReviewsGiven() {
-        return reviewsGiven;
-    }
-
-    public void setReviewsGiven(List<UserReview> reviewsGiven) {
-        this.reviewsGiven = reviewsGiven;
-    }
-
-    public List<UserReview> getReviewsReceived() {
-        return reviewsReceived;
-    }
-
-    public void setReviewsReceived(List<UserReview> reviewsReceived) {
-        this.reviewsReceived = reviewsReceived;
-    }
-
-    public UserInfo getUserInfo() {
-        return userInfo;
-    }
-
-    public void setUserInfo(UserInfo userInfo) {
-        this.userInfo = userInfo;
-    }
-
-    public List<UserCar> getCars() {
-        return cars;
-    }
-
-    public void setCars(List<UserCar> cars) {
-        this.cars = cars;
-    }
 
     @Override
-    public boolean equals(Object o) {
+    public final boolean equals(Object o) {
+        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return id == user.id && Objects.equals(name, user.name) && Objects.equals(email, user.email) && Objects.equals(password, user.password) && provider == user.provider && Objects.equals(providerId, user.providerId) && role == user.role && Objects.equals(phoneNumber, user.phoneNumber) && Objects.equals(birthday, user.birthday) && gender == user.gender && Objects.equals(reviewsGiven, user.reviewsGiven) && Objects.equals(reviewsReceived, user.reviewsReceived) && Objects.equals(userInfo, user.userInfo) && Objects.equals(cars, user.cars);
+        return Objects.equals(id, user.id);
+    }
+
+
+    @Override
+    public final int hashCode() {
+        return Objects.hash(id);
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(id, name, email, password, provider, providerId, role, phoneNumber, birthday, gender, reviewsGiven, reviewsReceived, userInfo, cars);
+    public final String toString() {
+        return "User{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", password='" + password + '\'' +
+                ", provider=" + provider +
+                ", providerId='" + providerId + '\'' +
+                ", role=" + role +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                ", birthday=" + birthday +
+                ", gender=" + gender +
+                ", reviewsGiven=" + reviewsGiven +
+                ", reviewsReceived=" + reviewsReceived +
+                ", userInfo=" + userInfo +
+                ", cars=" + cars +
+                '}';
     }
 }

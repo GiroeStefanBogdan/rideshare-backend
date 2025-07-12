@@ -1,6 +1,6 @@
 package com.example.blablacar.dto;
 
-import com.example.blablacar.enums.Gender;
+import com.example.blablacar.model.enums.Gender;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;

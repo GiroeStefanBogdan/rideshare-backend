@@ -22,10 +22,14 @@ public class JWTService {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    public JWTService() throws java.security.NoSuchAlgorithmException {
-        KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-        SecretKey sk = keyGenerator.generateKey();
-        secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
+    public JWTService() {
+        try {
+            KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+            SecretKey sk = keyGenerator.generateKey();
+            secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
+        } catch (NoSuchAlgorithmException e) {
+
+        }
     }
 
     public String generateToken(final String email) {
