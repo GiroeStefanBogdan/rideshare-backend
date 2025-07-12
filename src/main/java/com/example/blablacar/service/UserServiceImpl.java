@@ -1,11 +1,11 @@
 package com.example.blablacar.service;
 
 import com.example.blablacar.dto.LoginRequest;
+import com.example.blablacar.model.user.User;
 import com.example.blablacar.dto.UserRegistrationRequest;
 import com.example.blablacar.enums.AuthProvider;
 import com.example.blablacar.enums.Role;
 import com.example.blablacar.exception.EmailAlreadyExistsException;
-import com.example.blablacar.model.User;
 import com.example.blablacar.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -33,18 +33,27 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmail(userRegistrationRequest.email())) {
             throw new EmailAlreadyExistsException("Email is already registered");
         }
-        User user = User.builder()
-                .name(userRegistrationRequest.name())
-                .email(userRegistrationRequest.email())
-                .password(userRegistrationRequest.password())
-                .provider(AuthProvider.LOCAL)
-                .providerId(null)
-                .role(Role.ROLE_USER)
-                .birthday(userRegistrationRequest.birthday())
-                .phoneNumber(userRegistrationRequest.phoneNumber())
-                .gender(userRegistrationRequest.gender())
-                .password(passwordEncoder.encode(userRegistrationRequest.password()))
-                .build();
+//        User user = User.builder()
+//                .name(userRegistrationRequest.name())
+//                .email(userRegistrationRequest.email())
+//                .password(userRegistrationRequest.password())
+//                .provider(AuthProvider.LOCAL)
+//                .providerId(null)
+//                .role(Role.ROLE_USER)
+//                .birthday(userRegistrationRequest.birthday())
+//                .phoneNumber(userRegistrationRequest.phoneNumber())
+//                .gender(userRegistrationRequest.gender())
+//                .password(passwordEncoder.encode(userRegistrationRequest.password()))
+//                .build();
+        User user = new User(
+                userRegistrationRequest.name(),
+                userRegistrationRequest.email(),
+                userRegistrationRequest.password(),
+                userRegistrationRequest.gender()
+        );
+        user.setBirthday(userRegistrationRequest.birthday());
+        user.setPhoneNumber(userRegistrationRequest.phoneNumber());
+        user.setGender(userRegistrationRequest.gender());
         return userRepository.save(user);
     }
 

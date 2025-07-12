@@ -1,7 +1,7 @@
 package com.example.blablacar.service;
 
-import com.example.blablacar.model.User;
-import com.example.blablacar.model.UserPrincipal;
+import com.example.blablacar.model.user.User;
+import com.example.blablacar.model.user.UserPrincipal;
 import com.example.blablacar.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -2,7 +2,7 @@ package com.example.blablacar.controller;
 
 import com.example.blablacar.dto.LoginRequest;
 import com.example.blablacar.dto.UserRegistrationRequest;
-import com.example.blablacar.model.User;
+import com.example.blablacar.model.user.User;
 import com.example.blablacar.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
