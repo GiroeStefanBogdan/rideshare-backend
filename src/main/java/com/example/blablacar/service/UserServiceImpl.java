@@ -36,10 +36,10 @@ public class UserServiceImpl implements UserService {
                 userRegistrationRequest.name(),
                 userRegistrationRequest.email(),
                 passwordEncoder.encode(userRegistrationRequest.password()),
-                userRegistrationRequest.gender()
+                userRegistrationRequest.gender(),
+                userRegistrationRequest.birthday(),
+                userRegistrationRequest.phoneNumber()
         );
-        user.setBirthday(userRegistrationRequest.birthday());
-        user.setPhoneNumber(userRegistrationRequest.phoneNumber());
         return userRepository.save(user);
     }
 

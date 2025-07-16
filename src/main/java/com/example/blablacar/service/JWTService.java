@@ -22,6 +22,9 @@ public class JWTService {
     @Value("${jwt.secret}")
     private String secretKey;
 
+    @Value("${jwt.expiration}")
+    private long jwtExpirationMs;
+
     public JWTService() {
         try {
             KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
@@ -40,7 +43,7 @@ public class JWTService {
                 .add(claims)
                 .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24)) // Jwt valid for 24 hours
+                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs)) // Jwt valid for 24 hours
                 .and()
                 .signWith(getKey())
                 .compact();

@@ -18,7 +18,6 @@ public class UserReview implements Serializable {
 
     @Id
     @GeneratedValue
-    @Column(nullable = false, updatable = false)
     private long id;
 
     @ManyToOne(fetch = FetchType.EAGER)

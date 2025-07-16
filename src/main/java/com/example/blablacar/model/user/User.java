@@ -68,9 +68,8 @@ public class User implements Serializable {
     public User() {
     }
 
-
     // Constructor for traditional authentication
-    public User(String name, String email, String password, Gender gender) {
+    public User(String name, String email, String password, Gender gender, LocalDate birthday, String phoneNumber) {
         this.name = name;
         this.email = email;
         this.password = password;
@@ -78,6 +77,8 @@ public class User implements Serializable {
         this.providerId = null;
         this.role = Role.ROLE_USER;
         this.gender = gender;
+        this.birthday = birthday;
+        this.phoneNumber = phoneNumber;
     }
 
     // Constructor for OAuth2 authentication
@@ -156,7 +157,7 @@ public class User implements Serializable {
         return role;
     }
 
-    public void setRole(Role role) {
+    public void setRole(final Role role) {
         this.role = role;
     }
 
@@ -176,8 +177,6 @@ public class User implements Serializable {
         this.birthday = birthday;
     }
 
-
-
     @Override
     public final boolean equals(Object o) {
         if (this == o) return true;
@@ -186,29 +185,8 @@ public class User implements Serializable {
         return Objects.equals(id, user.id);
     }
 
-
     @Override
     public final int hashCode() {
         return Objects.hash(id);
-    }
-
-    @Override
-    public final String toString() {
-        return "User{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                ", password='" + password + '\'' +
-                ", provider=" + provider +
-                ", providerId='" + providerId + '\'' +
-                ", role=" + role +
-                ", phoneNumber='" + phoneNumber + '\'' +
-                ", birthday=" + birthday +
-                ", gender=" + gender +
-                ", reviewsGiven=" + reviewsGiven +
-                ", reviewsReceived=" + reviewsReceived +
-                ", userInfo=" + userInfo +
-                ", cars=" + cars +
-                '}';
     }
 }

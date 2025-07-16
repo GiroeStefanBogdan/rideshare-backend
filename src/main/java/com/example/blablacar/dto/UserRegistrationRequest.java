@@ -15,5 +15,5 @@ public record UserRegistrationRequest(@NotBlank(message = "Name is required") St
 
                                       @NotBlank(message = "Phone number is required") @Pattern(regexp = "^(\\+4|)?(07[0-8][0-9]|02[0-9]{2}|03[0-9]{2})(\\s|\\.|\\-)?[0-9]{3}(\\s|\\.|\\-)?[0-9]{3}$", message = "Invalid Romanian phone number") String phoneNumber,
 
-                                      @NotNull(message = "gender is required") Gender gender) {
+                                      @NotNull(message = "Gender is required") Gender gender) {
 }
