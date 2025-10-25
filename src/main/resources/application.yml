@@ -13,7 +13,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -33,3 +33,7 @@ logging:
     org.springframework.security.authentication: DEBUG
     org.springframework.security.web: DEBUG
     com.example.blablacar: DEBUG
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}

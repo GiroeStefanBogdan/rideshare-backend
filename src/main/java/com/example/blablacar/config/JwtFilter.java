@@ -5,16 +5,23 @@ import com.example.blablacar.service.CustomUserDetailsService;
 import com.example.blablacar.service.JWTService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -31,26 +38,32 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected final void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
                                           final FilterChain filterChain) throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
-        String token = null;
-        String email = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(BEGIN_INDEX);
-            email = jwtService.extractEmail(token);
-        }
+        final String tokenName = "token";
+        Optional<Cookie> tokenCookie = Optional.ofNullable(request.getCookies()).stream().flatMap(Arrays::stream)
+                .filter(cookie -> tokenName.equals(cookie.getName()))
+                .findAny();
 
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = context.getBean(CustomUserDetailsService.class).loadUserByUsername(email);
 
-            if (jwtService.validateToken(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        tokenCookie.ifPresent(cookie -> {
+            String token = cookie.getValue();
 
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                try {
+                    String email = jwtService.extractEmail(token);
+                    UserDetails userDetails = context.getBean(CustomUserDetailsService.class).loadUserByUsername(email);
+                    if (jwtService.validateToken(token, userDetails)) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
+                } catch (Exception e) {
+                    ResponseCookie clearCookie = ResponseCookie.from("token", "").httpOnly(true).path("/").maxAge(0).build();
+                    response.setHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
+                }
             }
-        }
+        });
         filterChain.doFilter(request, response);
 
     }

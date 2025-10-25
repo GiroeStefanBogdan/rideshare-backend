@@ -9,16 +9,19 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import java.io.Serializable;
+
 /**
  * Author: AlexandruDicu
  * Since: 24.06.2025
  */
 @Entity
 @Table(name = "user_cars")
-public class UserCar {
+public class UserCar implements Serializable {
 
     @Id
     @GeneratedValue
+    @Column(nullable = false, updatable = false)
     private long id;
 
     @ManyToOne

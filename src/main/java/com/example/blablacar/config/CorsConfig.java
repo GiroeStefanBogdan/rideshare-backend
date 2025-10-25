@@ -14,7 +14,7 @@ public class CorsConfig {
             public void addCorsMappings(final CorsRegistry registry) {
                 registry.addMapping("/**") // Apply to all endpoints
                         .allowedOrigins("http://localhost:5173") // SvelteKit dev server
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedMethods("*")
                         .allowedHeaders("*")
                         .allowCredentials(true); // needed if you use cookies
             }

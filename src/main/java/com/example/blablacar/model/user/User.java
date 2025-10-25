@@ -1,18 +1,13 @@
 package com.example.blablacar.model.user;
 
-import com.example.blablacar.model.AuthProvider;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import com.example.blablacar.model.enums.Gender;
+import com.example.blablacar.model.enums.Role;
+import com.example.blablacar.model.enums.AuthProvider;
+import jakarta.persistence.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -51,6 +46,12 @@ public class User implements Serializable {
     @Column(nullable = false, length = 20)
     private String phoneNumber;
 
+    @Column(nullable = false)
+    private LocalDate birthday;
+
+    @Column(nullable = false)
+    private Gender gender;
+
     @OneToMany(mappedBy = "reviewer")
     private List<UserReview> reviewsGiven;
 
@@ -68,22 +69,40 @@ public class User implements Serializable {
     }
 
     // Constructor for traditional authentication
-    public User(String name, String email, String password) {
+    public User(String name, String email, String password, Gender gender, LocalDate birthday, String phoneNumber) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.provider = AuthProvider.LOCAL;
         this.providerId = null;
-        this.role = Role.USER;
+        this.role = Role.ROLE_USER;
+        this.gender = gender;
+        this.birthday = birthday;
+        this.phoneNumber = phoneNumber;
     }
 
     // Constructor for OAuth2 authentication
-    public User(String name, String email, AuthProvider provider, String providerId) {
+    public User(String name, String email, AuthProvider provider, String providerId, Gender gender) {
         this.name = name;
         this.email = email;
         this.provider = provider;
         this.providerId = providerId;
-        this.role = Role.USER;
+        this.role = Role.ROLE_USER;
+        this.gender = gender;
+    }
+
+    // For UserPrincipal
+    public User(User user) {
+        this.id = user.id;
+        this.name = user.name;
+        this.email = user.email;
+        this.password = user.password;
+        this.provider = user.provider;
+        this.providerId = user.providerId;
+        this.role = user.role;
+        this.phoneNumber = user.phoneNumber;
+        this.birthday = user.birthday;
+        this.gender = user.gender;
     }
 
     public long getId() {
@@ -142,6 +161,22 @@ public class User implements Serializable {
         this.role = role;
     }
 
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public LocalDate getBirthday() {
+        return birthday;
+    }
+
+    public void setBirthday(LocalDate birthday) {
+        this.birthday = birthday;
+    }
+
     @Override
     public final boolean equals(Object o) {
         if (this == o) return true;
@@ -153,16 +188,5 @@ public class User implements Serializable {
     @Override
     public final int hashCode() {
         return Objects.hash(id);
-    }
-
-    @Override
-    public final String toString() {
-        return "User{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                ", provider=" + provider +
-                ", role='" + role + '\'' +
-                '}';
     }
 }

@@ -4,10 +4,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -17,12 +19,20 @@ import java.util.function.Function;
 @Service
 public class JWTService {
 
-    private String secretKey = "cF781";
+    @Value("${jwt.secret}")
+    private String secretKey;
 
-    public JWTService() throws java.security.NoSuchAlgorithmException {
-        KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-        SecretKey sk = keyGenerator.generateKey();
-        secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
+    @Value("${jwt.expiration}")
+    private long jwtExpirationMs;
+
+    public JWTService() {
+        try {
+            KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+            SecretKey sk = keyGenerator.generateKey();
+            secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
+        } catch (NoSuchAlgorithmException e) {
+
+        }
     }
 
     public String generateToken(final String email) {
@@ -33,7 +43,7 @@ public class JWTService {
                 .add(claims)
                 .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 60 * 60 * 24)) // Jwt valid for 24 hours
+                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs)) // Jwt valid for 24 hours
                 .and()
                 .signWith(getKey())
                 .compact();

@@ -1,13 +1,7 @@
 package com.example.blablacar.model.user;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -21,6 +15,10 @@ import java.time.LocalDate;
         @UniqueConstraint(columnNames = {"target_user_id", "reviewer_id"})
 })
 public class UserReview implements Serializable {
+
+    @Id
+    @GeneratedValue
+    private long id;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "target_user_id", nullable = false)

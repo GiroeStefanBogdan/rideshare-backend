@@ -1,12 +1,9 @@
 package com.example.blablacar.model.user;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
+import java.io.Serializable;
 
 /**
  * Author: AlexandruDicu
@@ -14,9 +11,11 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "user_info")
-public class UserInfo {
+public class UserInfo implements Serializable {
 
     @Id
+    @GeneratedValue
+    @Column(nullable = false, updatable = false)
     private long id;
 
     @OneToOne

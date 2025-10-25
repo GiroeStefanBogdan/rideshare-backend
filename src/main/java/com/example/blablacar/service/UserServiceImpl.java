@@ -2,6 +2,8 @@ package com.example.blablacar.service;
 
 import com.example.blablacar.dto.LoginRequest;
 import com.example.blablacar.model.user.User;
+import com.example.blablacar.dto.UserRegistrationRequest;
+import com.example.blablacar.exception.EmailAlreadyExistsException;
 import com.example.blablacar.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,21 +25,31 @@ public class UserServiceImpl implements UserService {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
     }
+
     @Override
-    public User registerUser(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+    public User registerUser(UserRegistrationRequest userRegistrationRequest) {
+        if (userRepository.existsByEmail(userRegistrationRequest.email())) {
+            throw new EmailAlreadyExistsException("Email is already registered");
+        }
+
+        User user = new User(
+                userRegistrationRequest.name(),
+                userRegistrationRequest.email(),
+                passwordEncoder.encode(userRegistrationRequest.password()),
+                userRegistrationRequest.gender(),
+                userRegistrationRequest.birthday(),
+                userRegistrationRequest.phoneNumber()
+        );
         return userRepository.save(user);
     }
 
     @Override
     public String verify(LoginRequest user) {
-        System.out.println("🔑 Verifying: " + user.getEmail() + " with password: " + user.getPassword());
-        Authentication authentication =
-                authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
 
-        if(authentication.isAuthenticated()){
+        if (authentication.isAuthenticated()) {
             return jwtService.generateToken(user.getEmail());
         }
-        return "Fail";
+        return null;
     }
 }
