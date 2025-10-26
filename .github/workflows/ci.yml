@@ -26,13 +26,13 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: ${{ env.SPRING_DATASOURCE_USERNAME }}
-          POSTGRES_PASSWORD: ${{ env.SPRING_DATASOURCE_PASSWORD }}
-          POSTGRES_DB: ${{ env.DB_NAME }}
+          POSTGRES_USER: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          POSTGRES_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U ${{ env.SPRING_DATASOURCE_USERNAME }}"
+          --health-cmd "pg_isready -U ${{ secrets.SPRING_DATASOURCE_USERNAME }}"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
