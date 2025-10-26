@@ -19,7 +19,25 @@ jobs:
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
+      # JDBC URL Spring Boot will use
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/rideshare
 
+    # 🐘 PostgreSQL service container
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rideshare
+        ports:
+          - 5432:5432
+        # Wait for the DB to be ready before running tests
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       # Step 1: Checkout repository
       - name: 📥 Checkout code
