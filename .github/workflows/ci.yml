@@ -27,9 +27,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: rideshare
+          POSTGRES_USER: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          POSTGRES_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
         ports:
           - 5432:5432
         # Wait for the DB to be ready before running tests
