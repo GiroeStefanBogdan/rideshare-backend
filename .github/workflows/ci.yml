@@ -12,8 +12,8 @@ jobs:
 
     # 🧩 Environment variables from secrets
     env:
-      DB_HOST: localhost
-      DB_PORT: 5432
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT:  ${{ secrets.DB_PORT }}
       DB_NAME: ${{ secrets.DB_NAME }}
       SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
       SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
@@ -26,9 +26,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: postgres          # use default user for container
-          POSTGRES_PASSWORD: postgres      # use default password for container
-          POSTGRES_DB: rideshare
+          POSTGRES_USER: ${{ secrets.SPRING_DATASOURCE_USERNAME }}          # use default user for container
+          POSTGRES_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}      # use default password for container
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
         ports:
           - 5432:5432
         options: >-
