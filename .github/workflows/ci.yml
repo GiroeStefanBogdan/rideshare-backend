@@ -55,8 +55,10 @@ jobs:
 
       - name: 🗄️ Create rideshare database
         run: |
-          export PGPASSWORD=postgres
-          psql -h localhost -U postgres -c 'CREATE DATABASE rideshare;' || true
+          export PGPASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          psql -h localhost -U ${{ secrets.SPRING_DATASOURCE_USERNAME }} -tc "SELECT 1 FROM pg_database WHERE datname = 'rideshare'" | grep -q 1 || \
+          psql -h localhost -U ${{ secrets.SPRING_DATASOURCE_USERNAME }} -c 'CREATE DATABASE rideshare;'
+
 
       - name: 🧱 Build & Analyze with Maven - Checkstyle (validate), SpotBugs (compile), and tests (test)
         run: mvn -B clean verify --file pom.xml
