@@ -56,7 +56,7 @@ jobs:
       - name: 🗄️ Create rideshare database
         run: |
           export PGPASSWORD=postgres
-          psql -h localhost -U postgres -c 'CREATE DATABASE rideshare;'
+          psql -h localhost -U postgres -c 'CREATE DATABASE rideshare;' || true
 
       - name: 🧱 Build & Analyze with Maven - Checkstyle (validate), SpotBugs (compile), and tests (test)
         run: mvn -B clean verify --file pom.xml
