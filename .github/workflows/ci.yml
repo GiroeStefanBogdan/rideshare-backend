@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     # 🧩 Environment variables (loaded from GitHub Secrets)
     env:
       DB_HOST: ${{ secrets.DB_HOST }}
@@ -19,7 +20,6 @@ jobs:
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
-      # JDBC URL Spring Boot will use
       SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/rideshare
 
     # 🐘 PostgreSQL service container
@@ -32,12 +32,12 @@ jobs:
           POSTGRES_DB: ${{ secrets.DB_NAME }}
         ports:
           - 5432:5432
-        # Wait for the DB to be ready before running tests
         options: >-
-          --health-cmd pg_isready
+          --health-cmd pg_isready -U ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
     steps:
       # Step 1: Checkout repository
       - name: 📥 Checkout code
@@ -51,15 +51,23 @@ jobs:
           java-version: 21
           cache: maven
 
-      - name: ⏳ Wait for PostgreSQL to initialize
-        run: sleep 10
+      # Step 3: Wait for PostgreSQL to initialize
+      - name: ⏳ Wait for PostgreSQL
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          sleep 10
 
-      # Step 3: Build, analyze & test
-      # Runs Checkstyle (validate), SpotBugs (compile), and tests (test)
+      # Step 4: ✅ Create rideshare database (just in case)
+      - name: 🗄️ Create rideshare database
+        run: |
+          export PGPASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          psql -h localhost -U ${{ secrets.SPRING_DATASOURCE_USERNAME }} -c 'CREATE DATABASE rideshare;'
+
+      # Step 5: Build, analyze & test
       - name: 🧱 Build & Analyze with Maven - Checkstyle (validate), SpotBugs (compile), and tests (test)
         run: mvn -B clean verify --file pom.xml
 
-      # Step 4: Upload SpotBugs report (optional but useful)
+      # Step 6: Upload SpotBugs report
       - name: 📊 Upload SpotBugs reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,13 +77,13 @@ jobs:
             target/spotbugsXml.xml
             target/spotbugs.html
 
-      # Step 5: Upload built JAR artifact
+      # Step 7: Upload built JAR artifact
       - name: 📦 Upload built JAR
         uses: actions/upload-artifact@v4
         with:
           name: spring-boot-app
           path: target/*.jar
 
-      # Step 6: Update dependency graph for Dependabot
+      # Step 8: Update dependency graph for Dependabot
       - name: 🔗 Update dependency graph
         uses: advanced-security/maven-dependency-submission-action@v4
