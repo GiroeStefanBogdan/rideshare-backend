@@ -51,6 +51,9 @@ jobs:
           java-version: 21
           cache: maven
 
+      - name: ⏳ Wait for PostgreSQL to initialize
+        run: sleep 10
+
       # Step 3: Build, analyze & test
       # Runs Checkstyle (validate), SpotBugs (compile), and tests (test)
       - name: 🧱 Build & Analyze with Maven - Checkstyle (validate), SpotBugs (compile), and tests (test)
