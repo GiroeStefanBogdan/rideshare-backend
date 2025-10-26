@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ "develop" ]
 
+permissions:
+  contents: write
+  actions: read
+  security-events: write
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,7 +34,7 @@ jobs:
         env:
           POSTGRES_USER: my_user
           POSTGRES_PASSWORD: my_password
-          POSTGRES_DB: blablacar
+          POSTGRES_DB: postgres
         ports:
           - 5432:5432
         options: >-
@@ -53,11 +59,12 @@ jobs:
           echo "Waiting for PostgreSQL to be ready..."
           sleep 10
 
-      - name: 🗄️ Create database if missing
+      - name: 🗄️ Create database
         run: |
           export PGPASSWORD=$SPRING_DATASOURCE_PASSWORD
-          psql -h localhost -U $SPRING_DATASOURCE_USERNAME -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1 || \
           psql -h localhost -U $SPRING_DATASOURCE_USERNAME -d postgres -c "CREATE DATABASE $DB_NAME;"
+        env:
+          PGPASSWORD: my_password
 
       - name: 🧱 Build & Analyze with Maven
         run: mvn -B clean verify --file pom.xml
