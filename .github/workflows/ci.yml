@@ -10,6 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # 🧩 Load all environment variables from secrets
     env:
       DB_HOST: ${{ secrets.DB_HOST }}
       DB_PORT: ${{ secrets.DB_PORT }}
@@ -25,13 +26,13 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
-          POSTGRES_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.DB_NAME }}
+          POSTGRES_USER: ${{ env.SPRING_DATASOURCE_USERNAME }}
+          POSTGRES_PASSWORD: ${{ env.SPRING_DATASOURCE_PASSWORD }}
+          POSTGRES_DB: ${{ env.DB_NAME }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U ${{ secrets.SPRING_DATASOURCE_USERNAME }}"
+          --health-cmd "pg_isready -U ${{ env.SPRING_DATASOURCE_USERNAME }}"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -52,12 +53,11 @@ jobs:
           echo "Waiting for PostgreSQL to be ready..."
           sleep 10
 
-      # Optional: ensure DB exists (but container usually handles this)
       - name: 🗄️ Create database if missing
         run: |
-          export PGPASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
-          psql -h localhost -U ${{ secrets.SPRING_DATASOURCE_USERNAME }} -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '${{ secrets.DB_NAME }}'" | grep -q 1 || \
-          psql -h localhost -U ${{ secrets.SPRING_DATASOURCE_USERNAME }} -d postgres -c "CREATE DATABASE ${{ secrets.DB_NAME }};"
+          export PGPASSWORD=$SPRING_DATASOURCE_PASSWORD
+          psql -h localhost -U $SPRING_DATASOURCE_USERNAME -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1 || \
+          psql -h localhost -U $SPRING_DATASOURCE_USERNAME -d postgres -c "CREATE DATABASE $DB_NAME;"
 
       - name: 🧱 Build & Analyze with Maven
         run: mvn -B clean verify --file pom.xml
