@@ -32,7 +32,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: my_user
+          POSTGRES_USER: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           POSTGRES_PASSWORD: my_password
           POSTGRES_DB: postgres
         ports:
