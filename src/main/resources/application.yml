@@ -1,6 +1,6 @@
 spring:
   config:
-    import: file:./.env[.properties]
+    import: optional:file:./.env # to not fail ci because env will come from Github env
 
   application:
     name: RideshareApp
