@@ -70,12 +70,17 @@ jobs:
           echo "✅ PostgreSQL is ready!"
         shell: bash
 
-      - name: 🗄️ Create database
+      - name: 🗄️ Create database if missing
         run: |
           export PGPASSWORD=$SPRING_DATASOURCE_PASSWORD
-          psql -h localhost -U $SPRING_DATASOURCE_USERNAME -d postgres -c "CREATE DATABASE $DB_NAME;"
-        env:
-          PGPASSWORD: my_password
+          if ! psql -h localhost -U $SPRING_DATASOURCE_USERNAME -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+            echo "Creating database $DB_NAME..."
+            psql -h localhost -U $SPRING_DATASOURCE_USERNAME -d postgres -c "CREATE DATABASE $DB_NAME;"
+          else
+            echo "Database $DB_NAME already exists. Skipping creation."
+          fi
+        shell: bash
+
 
       - name: 🧱 Build & Analyze with Maven
         run: mvn -B clean verify --file pom.xml
