@@ -26,15 +26,15 @@ jobs:
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ secrets.DB_NAME }}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${{ secrets.DB_HOST }}:${{ secrets.DB_PORT}}/${{ secrets.DB_NAME }}
 
     services:
       postgres:
         image: postgres:15
         env:
           POSTGRES_USER: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
-          POSTGRES_PASSWORD: my_password
-          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
         ports:
           - 5432:5432
         options: >-
@@ -56,8 +56,19 @@ jobs:
 
       - name: ⏳ Wait for PostgreSQL
         run: |
-          echo "Waiting for PostgreSQL to be ready..."
-          sleep 10
+          readonly MAX_RETRIES=30
+          i=0
+          until PGPASSWORD="${{ secrets.SPRING_DATASOURCE_PASSWORD }}" pg_isready -h localhost -p 5432 -U "${{ secrets.SPRING_DATASOURCE_USERNAME }}" ; do
+            i=$((i+1))
+            if [ $i -ge $MAX_RETRIES ]; then
+              echo "❌ PostgreSQL did not become ready after ${MAX_RETRIES} attempts"
+              exit 1
+            fi
+            echo "⏳ Waiting for PostgreSQL..."
+            sleep 2
+          done
+          echo "✅ PostgreSQL is ready!"
+        shell: bash
 
       - name: 🗄️ Create database
         run: |
