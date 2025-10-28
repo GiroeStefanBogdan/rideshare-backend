@@ -1,6 +1,6 @@
 spring:
   config:
-    import: optional:file:./.env # to not fail ci because env will come from Github env
+    import: optional:file:./.env # to not fail ci because env will come from GitHub env
 
   application:
     name: RideshareApp
@@ -12,13 +12,13 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   devtools:
     restart:
