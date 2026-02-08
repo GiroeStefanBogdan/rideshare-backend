@@ -13,7 +13,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -22,6 +22,8 @@ spring:
 
   devtools:
     restart:
+      enabled: true
+    livereload:
       enabled: true
 
 server:
@@ -33,6 +35,8 @@ logging:
     org.springframework.security.authentication: DEBUG
     org.springframework.security.web: DEBUG
     com.example.blablacar: DEBUG
+    org.springframework.boot.devtools.restart: DEBUG
+
 
 jwt:
   secret: ${JWT_SECRET}
