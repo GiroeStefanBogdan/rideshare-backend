@@ -1,0 +1,25 @@
+db:
+  host: localhost
+  port: 5432
+  name: blablacar
+
+server:
+  port: 8080
+
+spring:
+  datasource:
+    username: my_user
+    password: my_password
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+
+logging:
+  level:
+    com.example.blablacar: DEBUG
+    org.springframework.security: DEBUG
+
+jwt:
+  secret: NihIGyxZdUvoSNAsAkIPQlStYiSgVQhtWmZxagmrYIOxREXFCeZTdtOtDIpcNKhAOLJeujyVLMfiFfpxGjKTyiTOiYnWbBIAHmOh
+  expiration: 86400000
