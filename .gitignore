@@ -34,3 +34,4 @@ build/
 
 ### Enviroment files ###
 .env
+application-local.yml
