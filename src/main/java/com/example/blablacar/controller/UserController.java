@@ -40,17 +40,18 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid LoginRequest user) {
-        String token = userService.verify(user);
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest user) {
+        LoginResponse loginResponse = userService.verify(user);
 
-        if (token == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        if (loginResponse == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        ResponseCookie cookie = ResponseCookie.from("token", token).httpOnly(true).secure(false) // use true on HTTPS
+        ResponseCookie cookie = ResponseCookie.from("token", loginResponse.token()).httpOnly(true).secure(false) // use true on HTTPS
                 .path("/").sameSite("Lax").maxAge(Duration.ofHours(24)).build();
 
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(loginResponse);
     }
 
 
