@@ -47,11 +47,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String verify(LoginRequest user) {
+    public LoginResponse verify(LoginRequest user) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword()));
 
         if (authentication.isAuthenticated()) {
-            return jwtService.generateToken(user.getEmail());
+            String token = jwtService.generateToken(user.getEmail());
+            User foundUser = userRepository.findByEmail(user.getEmail())
+                    .orElseThrow(() -> new UserNotFoundException("User not found with email " + user.getEmail()));
+            return new LoginResponse(token, UserResponseDto.from(foundUser));
         }
         return null;
     }

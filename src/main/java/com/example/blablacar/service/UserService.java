@@ -11,7 +11,7 @@ public interface UserService {
 
     UserResponseDto registerUser(UserRegistrationRequestDto registerRequest);
 
-    String verify(LoginRequest user);
+    LoginResponse verify(LoginRequest user);
 
     List<UserResponseDto> getAllUsers();
 
