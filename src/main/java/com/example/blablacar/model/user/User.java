@@ -49,6 +49,7 @@ public class User implements Serializable {
     @Column(nullable = false)
     private LocalDate birthday;
 
+    @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)
     private Gender gender;
 
@@ -175,6 +176,14 @@ public class User implements Serializable {
 
     public void setBirthday(LocalDate birthday) {
         this.birthday = birthday;
+    }
+
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
     }
 
     @Override

@@ -34,3 +34,5 @@ build/
 
 ### Enviroment files ###
 .env
+application-local.yml
+CLAUDE.md
