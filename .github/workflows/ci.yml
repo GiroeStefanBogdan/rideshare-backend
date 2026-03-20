@@ -30,7 +30,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        image: postgres:18
         env:
           POSTGRES_USER: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           POSTGRES_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
@@ -38,7 +38,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U my_user"
+          --health-cmd "pg_isready"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -47,40 +47,12 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: ☕ Set up JDK 21
+      - name: ☕ Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25
           cache: maven
-
-      - name: ⏳ Wait for PostgreSQL
-        run: |
-          readonly MAX_RETRIES=30
-          i=0
-          until PGPASSWORD="${{ secrets.SPRING_DATASOURCE_PASSWORD }}" pg_isready -h localhost -p 5432 -U "${{ secrets.SPRING_DATASOURCE_USERNAME }}" ; do
-            i=$((i+1))
-            if [ $i -ge $MAX_RETRIES ]; then
-              echo "❌ PostgreSQL did not become ready after ${MAX_RETRIES} attempts"
-              exit 1
-            fi
-            echo "⏳ Waiting for PostgreSQL..."
-            sleep 2
-          done
-          echo "✅ PostgreSQL is ready!"
-        shell: bash
-
-      - name: 🗄️ Create database if missing
-        run: |
-          export PGPASSWORD=$SPRING_DATASOURCE_PASSWORD
-          if ! psql -h localhost -U $SPRING_DATASOURCE_USERNAME -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
-            echo "Creating database $DB_NAME..."
-            psql -h localhost -U $SPRING_DATASOURCE_USERNAME -d postgres -c "CREATE DATABASE $DB_NAME;"
-          else
-            echo "Database $DB_NAME already exists. Skipping creation."
-          fi
-        shell: bash
-
 
       - name: 🧱 Build & Analyze with Maven
         run: mvn -B clean verify --file pom.xml
@@ -90,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: spotbugs-reports
-          path: | 
+          path: |
             target/spotbugsXml.xml
             target/spotbugs.html
 
