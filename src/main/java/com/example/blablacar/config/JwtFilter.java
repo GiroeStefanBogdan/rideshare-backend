@@ -1,6 +1,5 @@
 package com.example.blablacar.config;
 
-
 import com.example.blablacar.service.CustomUserDetailsService;
 import com.example.blablacar.service.JWTService;
 import jakarta.servlet.FilterChain;
@@ -8,7 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.context.ApplicationContext;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,54 +16,62 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.WebUtils;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.stream.Stream;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
-    public static final int BEGIN_INDEX = 7;
     private final JWTService jwtService;
-    private final ApplicationContext context;
+    private final CustomUserDetailsService userDetailsService;
 
-    public JwtFilter(final JWTService jwtServiceParam, final ApplicationContext contextParam) {
-        this.jwtService = jwtServiceParam;
-        this.context = contextParam;
+    public JwtFilter(final JWTService jwtService, final CustomUserDetailsService userDetailsService) {
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
     }
 
     @Override
-    protected final void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
-                                          final FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(final @NonNull HttpServletRequest request,
+                                    final @NonNull HttpServletResponse response,
+                                    final @NonNull FilterChain filterChain)
+            throws ServletException, IOException {
 
-        final String tokenName = "token";
-        Optional<Cookie> tokenCookie = Optional.ofNullable(request.getCookies()).stream().flatMap(Arrays::stream)
-                .filter(cookie -> tokenName.equals(cookie.getName()))
-                .findAny();
+        Cookie tokenCookie = WebUtils.getCookie(request, "token");
 
+        if (tokenCookie != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            String token = tokenCookie.getValue();
 
-        tokenCookie.ifPresent(cookie -> {
-            String token = cookie.getValue();
+            try {
+                String email = jwtService.extractEmail(token);
 
-            if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                try {
-                    String email = jwtService.extractEmail(token);
-                    UserDetails userDetails = context.getBean(CustomUserDetailsService.class).loadUserByUsername(email);
-                    if (jwtService.validateToken(token, userDetails)) {
-                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                // Consider if you actually need to hit the DB here.
+                // If the JWT is signed and valid, you can trust the email claim.
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
-                    }
-                } catch (Exception e) {
-                    ResponseCookie clearCookie = ResponseCookie.from("token", "").httpOnly(true).path("/").maxAge(0).build();
-                    response.setHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
+                if (jwtService.validateToken(token, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
+            } catch (Exception e) {
+                logger.error("JWT Authentication failed: " + e.getMessage());
+                clearTokenCookie(response);
             }
-        });
-        filterChain.doFilter(request, response);
+        }
 
+        filterChain.doFilter(request, response);
+    }
+
+    private void clearTokenCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("token", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }
