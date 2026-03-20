@@ -34,9 +34,9 @@ public class UserServiceImpl implements UserService {
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
 
-    public UserServiceImpl(JsonMapper mapper, UserRepository userRepository, PasswordEncoder passwordEncoder,
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
                            AuthenticationManager authenticationManager, JWTService jwtService) {
-        this.mapper = mapper;
+        this.mapper = new JsonMapper();
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
