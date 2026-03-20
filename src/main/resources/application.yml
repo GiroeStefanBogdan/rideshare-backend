@@ -5,7 +5,9 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${db.host}:${db.port}/${db.name}
+
   jpa:
     open-in-view: false
+
   profiles:
     active: dev
