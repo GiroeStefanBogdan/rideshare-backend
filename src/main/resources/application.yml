@@ -1,11 +1,36 @@
 spring:
   application:
     name: RideshareApp
-
+  threads:
+    virtual:
+      enabled: true
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${db.host}:${db.port}/${db.name}
+    hikari:
+      pool-name: RideShareHikariCP
+      maximum-pool-size: 15
+      minimum-idle: 15
+      connection-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 3000
+      data-source-properties:
+        assumeMinServerVersion: "18"
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        useServerPrepStmts: true
+        reWriteBatchedInserts: true
+        tcpKeepAlive: true
   jpa:
     open-in-view: false
+    fetch_size: 100
+    properties:
+      hibernate:
+        jdbc.batch_size: 25
+        order_inserts: true
+        order_updates: true
+        connection.autocommit: false
   profiles:
     active: dev

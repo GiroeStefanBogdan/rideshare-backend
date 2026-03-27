@@ -7,10 +7,8 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-import javax.crypto.KeyGenerator;
+
 import javax.crypto.SecretKey;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,35 +17,24 @@ import java.util.function.Function;
 @Service
 public class JWTService {
 
+    // Must be at least 256 bits (32 bytes) Base64 encoded string in application.yml
     @Value("${jwt.secret}")
     private String secretKey;
 
     @Value("${jwt.expiration}")
     private long jwtExpirationMs;
 
-    public JWTService() {
-        try {
-            KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-            SecretKey sk = keyGenerator.generateKey();
-            secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
-        } catch (NoSuchAlgorithmException e) {
-
-        }
-    }
-
-    public String generateToken(final String email) {
+    public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("roles", userDetails.getAuthorities());
 
         return Jwts.builder()
-                .claims()
-                .add(claims)
-                .subject(email)
+                .claims(claims)
+                .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs)) // Jwt valid for 24 hours
-                .and()
+                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(getKey())
                 .compact();
-
     }
 
     private SecretKey getKey() {
@@ -55,9 +42,7 @@ public class JWTService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-
     public String extractEmail(final String token) {
-        // Extract email from jwt token
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -76,14 +61,6 @@ public class JWTService {
 
     public boolean validateToken(final String token, final UserDetails userDetails) {
         final String userName = extractEmail(token);
-        return (userName.equals(userDetails.getUsername()) && !isTokenExpired(token));
-    }
-
-    private boolean isTokenExpired(final String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    private Date extractExpiration(final String token) {
-        return extractClaim(token, Claims::getExpiration);
+        return (userName.equals(userDetails.getUsername()));
     }
 }
