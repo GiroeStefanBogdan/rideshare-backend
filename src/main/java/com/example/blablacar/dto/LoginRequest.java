@@ -13,6 +13,8 @@ public class LoginRequest {
     @NotBlank(message = "Password is required")
     private String password;
 
+    private Boolean rememberMe;
+
     public String getEmail() {
         return email;
     }
@@ -25,5 +27,7 @@ public class LoginRequest {
         return password;
     }
 
-
+    public Boolean getRememberMe() {
+        return rememberMe;
+    }
 }
