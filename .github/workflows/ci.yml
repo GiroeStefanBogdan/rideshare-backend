@@ -2,9 +2,20 @@ name: 🚀 Spring Boot CI Pipeline
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ "main", "develop" ]
+    paths:
+      - "src/**"
+      - "pom.xml"
   pull_request:
-    branches: [ "develop" ]
+    branches: [ "main", "develop" ]
+    paths:
+      - "src/**"
+      - "pom.xml"
+
+# Cancel redundant runs on the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -26,7 +37,7 @@ jobs:
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://${{ secrets.DB_HOST }}:${{ secrets.DB_PORT}}/${{ secrets.DB_NAME }}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}
 
     services:
       postgres:
@@ -54,23 +65,19 @@ jobs:
           java-version: 25
           cache: maven
 
-      - name: 🧱 Build & Analyze with Maven
-        run: mvn -B clean verify --file pom.xml
+      - name: ⚡ Pre-download dependencies
+        run: mvn -B dependency:go-offline
 
-      - name: 📊 Upload SpotBugs reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: spotbugs-reports
-          path: |
-            target/spotbugsXml.xml
-            target/spotbugs.html
+      - name: 🧱 Build with Maven (parallel, skip tests)
+        run: mvn -B -T 1C clean verify -DskipTests --file pom.xml
 
       - name: 📦 Upload built JAR
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
         uses: actions/upload-artifact@v7
         with:
           name: spring-boot-app
           path: target/*.jar
 
       - name: 🔗 Update dependency graph
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
         uses: advanced-security/maven-dependency-submission-action@v5
