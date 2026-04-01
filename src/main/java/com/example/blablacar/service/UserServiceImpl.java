@@ -65,7 +65,7 @@ public class UserServiceImpl implements UserService {
             if (userDetails == null) {
                 throw new BadCredentialsException("Authentication doesn't have correct principal");
             }
-            String token = jwtService.generateToken(userDetails);
+            String token = jwtService.generateToken(userDetails, loginRequest.getRememberMe());
 
             User foundUser = userRepository.findByEmail(loginRequest.getEmail())
                     .orElseThrow(

@@ -11,7 +11,15 @@ public class LoginRequest {
 
     @Size(min = 4, message = "Password must be at least 6 characters")
     @NotBlank(message = "Password is required")
-    private String password;
+    private final String password;
+
+    private final Boolean rememberMe;
+
+    public LoginRequest(final String email, final String password, final Boolean rememberMe) {
+        this.email = email;
+        this.password = password;
+        this.rememberMe = rememberMe;
+    }
 
     public String getEmail() {
         return email;
@@ -25,5 +33,7 @@ public class LoginRequest {
         return password;
     }
 
-
+    public Boolean getRememberMe() {
+        return rememberMe;
+    }
 }

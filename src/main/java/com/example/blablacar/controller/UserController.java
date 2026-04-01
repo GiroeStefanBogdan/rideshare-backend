@@ -1,11 +1,13 @@
 package com.example.blablacar.controller;
 
-import com.example.blablacar.dto.*;
+import com.example.blablacar.dto.LoginRequest;
+import com.example.blablacar.dto.LoginResponse;
+import com.example.blablacar.dto.UserRegistrationRequestDto;
+import com.example.blablacar.dto.UserResponseDto;
 import com.example.blablacar.model.enums.Role;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserPrincipal;
 import com.example.blablacar.service.UserService;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -15,7 +17,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 import java.util.List;
@@ -27,7 +35,6 @@ public class UserController {
     private final UserService userService;
 
     @Autowired
-    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public UserController(UserService userService) {
         this.userService = userService;
     }

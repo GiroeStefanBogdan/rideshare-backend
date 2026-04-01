@@ -17,6 +17,8 @@ import java.util.function.Function;
 @Service
 public class JWTService {
 
+    private static final int JWT_REMEMBER_FACTOR = 7;
+
     // Must be at least 256 bits (32 bytes) Base64 encoded string in application.yml
     @Value("${jwt.secret}")
     private String secretKey;
@@ -24,15 +26,19 @@ public class JWTService {
     @Value("${jwt.expiration}")
     private long jwtExpirationMs;
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails, final Boolean rememberMe) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("roles", userDetails.getAuthorities());
 
+        long jwtValidity = System.currentTimeMillis() + jwtExpirationMs;
+        if (Boolean.TRUE.equals(rememberMe)) {
+            jwtValidity *= JWT_REMEMBER_FACTOR;
+        }
         return Jwts.builder()
                 .claims(claims)
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .expiration(new Date(jwtValidity))
                 .signWith(getKey())
                 .compact();
     }
