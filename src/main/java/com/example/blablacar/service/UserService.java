@@ -1,6 +1,11 @@
 package com.example.blablacar.service;
 
-import com.example.blablacar.dto.*;
+import com.example.blablacar.dto.LoginRequest;
+import com.example.blablacar.dto.LoginResponse;
+import com.example.blablacar.dto.UpdateUserRequestDto;
+import com.example.blablacar.dto.UserProfileDto;
+import com.example.blablacar.dto.UserRegistrationRequestDto;
+import com.example.blablacar.dto.UserResponseDto;
 import com.example.blablacar.model.enums.Role;
 import com.example.blablacar.model.user.User;
 
@@ -15,7 +20,9 @@ public interface UserService {
 
     List<UserResponseDto> getAllUsers();
 
-    Object getUserById(long id, User authenticatedUser);
+    UserProfileDto getUserById(User authenticatedUser);
+
+    User findById(long id);
 
     UserResponseDto updateUserById(long requestedUserId, UpdateUserRequestDto updateUserRequestDto);
 
@@ -26,4 +33,6 @@ public interface UserService {
     void deleteUserById(Long id);
 
     void deleteMyAccount(Long id);
+
+    User getReferenceById(long id);
 }

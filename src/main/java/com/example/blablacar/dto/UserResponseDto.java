@@ -14,7 +14,7 @@ public record UserResponseDto(
         String phoneNumber,
         LocalDate birthday,
         Gender gender
-) {
+) implements UserProfileDto {
 
     public static UserResponseDto from(User user){
         return new UserResponseDto(

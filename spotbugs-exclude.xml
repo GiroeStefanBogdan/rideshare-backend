@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Suppress EI_EXPOSE_REP and EI_EXPOSE_REP2 globally as they are often false positives in Spring applications -->
+    <!-- where beans are singletons and entities are managed by JPA. -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP" />
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2" />
+    </Match>
+</FindBugsFilter>

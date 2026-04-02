@@ -1,46 +1,44 @@
 package com.example.blablacar.controller;
 
-import com.example.blablacar.dto.*;
+import com.example.blablacar.controller.api.UserOperations;
+import com.example.blablacar.dto.LoginRequest;
+import com.example.blablacar.dto.LoginResponse;
+import com.example.blablacar.dto.UserProfileDto;
+import com.example.blablacar.dto.UserRegistrationRequestDto;
+import com.example.blablacar.dto.UserResponseDto;
 import com.example.blablacar.model.enums.Role;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserPrincipal;
 import com.example.blablacar.service.UserService;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 import java.util.List;
 
 @Validated
 @RestController
-public class UserController {
+public class UserController implements UserOperations {
 
     private final UserService userService;
 
-    @Autowired
-    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserRegistrationRequestDto registerRequest) {
+    @Override
+    public ResponseEntity<UserResponseDto> register(UserRegistrationRequestDto registerRequest) {
         UserResponseDto userResponseDto = userService.registerUser(registerRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponseDto);
 
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest user) {
+    @Override
+    public ResponseEntity<LoginResponse> login(LoginRequest user) {
         LoginResponse loginResponse = userService.verify(user);
 
         if (loginResponse == null) {
@@ -55,50 +53,42 @@ public class UserController {
     }
 
 
-    @GetMapping("/users")
-    @PreAuthorize("hasRole('ADMIN')")
+    @Override
     public ResponseEntity<List<UserResponseDto>> getAllUsers() {
         List<UserResponseDto> allUsers = userService.getAllUsers();
         return ResponseEntity.ok(allUsers);
     }
 
-    @GetMapping("/users/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable long id,
-                                         @AuthenticationPrincipal UserPrincipal userPrincipal) {
+    @Override
+    public ResponseEntity<UserProfileDto> getUserById(UserPrincipal userPrincipal) {
         User authenticatedUser = userPrincipal.getUser();
-        Object profile = userService.getUserById(id, authenticatedUser);
+        UserProfileDto profile = userService.getUserById(authenticatedUser);
         return ResponseEntity.ok(profile);
     }
 
-    @PatchMapping("/users/me/password")
-    public ResponseEntity<Void> changeUserPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody LoginRequest loginRequest) {
+    @Override
+    public ResponseEntity<Void> changeUserPassword(UserPrincipal userPrincipal, LoginRequest loginRequest) {
         User user = userPrincipal.getUser();
         userService.changeUserPassword(user.getEmail(), loginRequest);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/admin/users/{id}/role")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserResponseDto> updateUserRole(@PathVariable long id, @Valid @RequestBody Role role) {
+    @Override
+    public ResponseEntity<UserResponseDto> updateUserRole(long id, Role role) {
         UserResponseDto userResponseDto = userService.updateUserRole(id, role);
         return ResponseEntity.ok(userResponseDto);
     }
 
-    @DeleteMapping("/admin/users/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteUserById(@PathVariable Long id) {
+    @Override
+    public ResponseEntity<Void> deleteUserById(Long id) {
         userService.deleteUserById(id);
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteMyAccount(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        // only allow deleting own account
+    @Override
+    public ResponseEntity<Void> deleteMyAccount(UserPrincipal userPrincipal) {
         User authenticatedUser = userPrincipal.getUser();
-        if (authenticatedUser.getId() != id && authenticatedUser.getRole().equals(Role.ROLE_ADMIN)) {
-            return ResponseEntity.noContent().build();
-        }
-        userService.deleteMyAccount(id);
+        userService.deleteMyAccount(authenticatedUser.getId());
         return ResponseEntity.noContent().build();
     }
 
