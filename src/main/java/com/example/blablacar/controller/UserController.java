@@ -10,6 +10,7 @@ import com.example.blablacar.model.enums.Role;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserPrincipal;
 import com.example.blablacar.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -26,6 +27,7 @@ public class UserController implements UserOperations {
 
     private final UserService userService;
 
+    @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
     }
