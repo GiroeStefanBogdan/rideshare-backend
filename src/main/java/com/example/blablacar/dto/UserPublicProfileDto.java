@@ -10,7 +10,7 @@ public record UserPublicProfileDto(
         String name,
         LocalDate birthday,
         Gender gender
-) {
+) implements UserProfileDto {
 
     public static UserPublicProfileDto from(User user){
         return new UserPublicProfileDto(

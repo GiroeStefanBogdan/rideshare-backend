@@ -3,6 +3,7 @@ package com.example.blablacar.service;
 import com.example.blablacar.dto.LoginRequest;
 import com.example.blablacar.dto.LoginResponse;
 import com.example.blablacar.dto.UpdateUserRequestDto;
+import com.example.blablacar.dto.UserProfileDto;
 import com.example.blablacar.dto.UserPublicProfileDto;
 import com.example.blablacar.dto.UserRegistrationRequestDto;
 import com.example.blablacar.dto.UserResponseDto;
@@ -84,19 +85,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Object getUserById(long requestedUserId, User authenticatedUser) {
-        long authenticatedUserId = authenticatedUser.getId();
-        User user =
-                userRepository.findById(requestedUserId).orElseThrow(() -> new UserNotFoundException(requestedUserId));
+    public UserProfileDto getUserById(User authenticatedUser) {
+        // Since the endpoint is now "me", we simply return the full profile
+        // of the user that was already retrieved during authentication.
+        return getFullProfile(authenticatedUser);
+    }
 
-        // if viewing own profile or the authenticated user is admin than return full details
-        if (user.getId() == authenticatedUserId || authenticatedUser.getRole().equals(Role.ROLE_ADMIN)) {
-            return getFullProfile(user);
-        }
-
-        // if viewing others, return public profile
-        return getPublicProfile(user);
-
+    @Override
+    public User findById(long id) {
+        return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
     }
 
     @Override
@@ -160,6 +157,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteMyAccount(Long id) {
         deleteUserById(id);
+    }
+
+    @Override
+    public User getReferenceById(long id) {
+        return userRepository.getReferenceById(id);
     }
 
     private void validateAge(LocalDate birthday) {
