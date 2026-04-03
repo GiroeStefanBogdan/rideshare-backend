@@ -1,6 +1,5 @@
 package com.example.blablacar.controller;
 
-import com.example.blablacar.controller.api.UserOperations;
 import com.example.blablacar.dto.LoginRequest;
 import com.example.blablacar.dto.LoginResponse;
 import com.example.blablacar.dto.UserProfileDto;
@@ -10,12 +9,21 @@ import com.example.blablacar.model.enums.Role;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserPrincipal;
 import com.example.blablacar.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
@@ -23,7 +31,7 @@ import java.util.List;
 
 @Validated
 @RestController
-public class UserController implements UserOperations {
+public class UserController {
 
     private final UserService userService;
 
@@ -32,15 +40,15 @@ public class UserController implements UserOperations {
         this.userService = userService;
     }
 
-    @Override
-    public ResponseEntity<UserResponseDto> register(UserRegistrationRequestDto registerRequest) {
+    @PostMapping("/register")
+    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserRegistrationRequestDto registerRequest) {
         UserResponseDto userResponseDto = userService.registerUser(registerRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponseDto);
 
     }
 
-    @Override
-    public ResponseEntity<LoginResponse> login(LoginRequest user) {
+    @PostMapping(value = "/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest user) {
         LoginResponse loginResponse = userService.verify(user);
 
         if (loginResponse == null) {
@@ -54,43 +62,45 @@ public class UserController implements UserOperations {
                 .body(loginResponse);
     }
 
-
-    @Override
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponseDto>> getAllUsers() {
         List<UserResponseDto> allUsers = userService.getAllUsers();
         return ResponseEntity.ok(allUsers);
     }
 
-    @Override
-    public ResponseEntity<UserProfileDto> getUserById(UserPrincipal userPrincipal) {
+    @GetMapping("/users/me")
+    public ResponseEntity<UserProfileDto> getUserById(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         User authenticatedUser = userPrincipal.getUser();
         UserProfileDto profile = userService.getUserById(authenticatedUser);
         return ResponseEntity.ok(profile);
     }
 
-    @Override
-    public ResponseEntity<Void> changeUserPassword(UserPrincipal userPrincipal, LoginRequest loginRequest) {
+    @PatchMapping("/users/me/password")
+    public ResponseEntity<Void> changeUserPassword(@AuthenticationPrincipal UserPrincipal userPrincipal,
+                                                   LoginRequest loginRequest) {
         User user = userPrincipal.getUser();
         userService.changeUserPassword(user.getEmail(), loginRequest);
         return ResponseEntity.noContent().build();
     }
 
-    @Override
-    public ResponseEntity<UserResponseDto> updateUserRole(long id, Role role) {
+    @PatchMapping("/admin/users/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponseDto> updateUserRole(@PathVariable long id, @Valid @RequestBody Role role) {
         UserResponseDto userResponseDto = userService.updateUserRole(id, role);
         return ResponseEntity.ok(userResponseDto);
     }
 
-    @Override
-    public ResponseEntity<Void> deleteUserById(Long id) {
+    @DeleteMapping("/admin/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteUserById(@PathVariable Long id) {
         userService.deleteUserById(id);
         return ResponseEntity.noContent().build();
     }
 
-    @Override
-    public ResponseEntity<Void> deleteMyAccount(UserPrincipal userPrincipal) {
-        User authenticatedUser = userPrincipal.getUser();
-        userService.deleteMyAccount(authenticatedUser.getId());
+    @DeleteMapping("/users/me")
+    public ResponseEntity<Void> deleteMyAccount(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        userService.deleteMyAccount(userPrincipal.getUser().getId());
         return ResponseEntity.noContent().build();
     }
 
