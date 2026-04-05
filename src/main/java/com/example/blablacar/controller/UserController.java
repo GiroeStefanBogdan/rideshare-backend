@@ -1,14 +1,14 @@
 package com.example.blablacar.controller;
 
-import com.example.blablacar.dto.LoginRequest;
-import com.example.blablacar.dto.LoginResponse;
-import com.example.blablacar.dto.UserProfileDto;
-import com.example.blablacar.dto.UserRegistrationRequestDto;
-import com.example.blablacar.dto.UserResponseDto;
+import com.example.blablacar.dto.auth.LoginRequest;
+import com.example.blablacar.dto.auth.LoginResponse;
+import com.example.blablacar.dto.user.UserProfileDto;
+import com.example.blablacar.dto.user.UserRegistrationRequestDto;
+import com.example.blablacar.dto.user.UserResponseDto;
 import com.example.blablacar.model.enums.Role;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserPrincipal;
-import com.example.blablacar.service.UserService;
+import com.example.blablacar.service.user.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -50,11 +50,6 @@ public class UserController {
     @PostMapping(value = "/login")
     public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest user) {
         LoginResponse loginResponse = userService.verify(user);
-
-        if (loginResponse == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
         ResponseCookie cookie = ResponseCookie.from("token", loginResponse.token()).httpOnly(true).secure(false) // use true on HTTPS
                 .path("/").sameSite("Lax").maxAge(Duration.ofHours(24)).build();
 

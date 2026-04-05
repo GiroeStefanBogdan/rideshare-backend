@@ -1,7 +1,7 @@
 package com.example.blablacar.config;
 
-import com.example.blablacar.service.CustomUserDetailsService;
-import com.example.blablacar.service.JWTService;
+import com.example.blablacar.service.user.CustomUserDetailsService;
+import com.example.blablacar.service.auth.JWTService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;

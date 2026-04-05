@@ -1,4 +1,4 @@
-package com.example.blablacar.dto;
+package com.example.blablacar.dto.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

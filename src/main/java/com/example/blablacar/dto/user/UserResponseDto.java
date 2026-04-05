@@ -1,4 +1,4 @@
-package com.example.blablacar.dto;
+package com.example.blablacar.dto.user;
 
 import com.example.blablacar.model.enums.Gender;
 import com.example.blablacar.model.enums.Role;

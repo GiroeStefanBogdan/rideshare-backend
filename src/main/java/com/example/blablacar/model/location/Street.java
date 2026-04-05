@@ -73,4 +73,6 @@ public class Street {
     public BigDecimal getLongitude() {
         return longitude;
     }
+
+
 }

@@ -1,8 +1,9 @@
-package com.example.blablacar.service;
+package com.example.blablacar.service.user;
 
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserPrincipal;
-import com.example.blablacar.repository.UserRepository;
+import com.example.blablacar.repository.user.UserRepository;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -22,7 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public @NonNull UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
         Optional<User> user = userRepository.findByEmail(email);
 
         if (user.isEmpty()) {

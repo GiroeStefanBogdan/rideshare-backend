@@ -1,18 +1,19 @@
-package com.example.blablacar.service;
+package com.example.blablacar.service.user;
 
-import com.example.blablacar.dto.LoginRequest;
-import com.example.blablacar.dto.LoginResponse;
-import com.example.blablacar.dto.UpdateUserRequestDto;
-import com.example.blablacar.dto.UserProfileDto;
-import com.example.blablacar.dto.UserPublicProfileDto;
-import com.example.blablacar.dto.UserRegistrationRequestDto;
-import com.example.blablacar.dto.UserResponseDto;
+import com.example.blablacar.dto.auth.LoginRequest;
+import com.example.blablacar.dto.auth.LoginResponse;
+import com.example.blablacar.dto.user.car.UpdateUserRequestDto;
+import com.example.blablacar.dto.user.UserProfileDto;
+import com.example.blablacar.dto.user.UserPublicProfileDto;
+import com.example.blablacar.dto.user.UserRegistrationRequestDto;
+import com.example.blablacar.dto.user.UserResponseDto;
 import com.example.blablacar.exception.user.EmailAlreadyExistsException;
 import com.example.blablacar.exception.user.InvalidAgeException;
 import com.example.blablacar.exception.user.UserNotFoundException;
 import com.example.blablacar.model.enums.Role;
 import com.example.blablacar.model.user.User;
-import com.example.blablacar.repository.UserRepository;
+import com.example.blablacar.repository.user.UserRepository;
+import com.example.blablacar.service.auth.JWTService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,7 +28,7 @@ import java.time.Period;
 import java.util.List;
 
 @Service
-public class UserServiceImpl implements UserService {
+public class UserService {
 
     private final JsonMapper mapper;
     private final UserRepository userRepository;
@@ -35,7 +36,7 @@ public class UserServiceImpl implements UserService {
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
                            AuthenticationManager authenticationManager, JWTService jwtService) {
         this.mapper = new JsonMapper();
         this.userRepository = userRepository;
@@ -44,7 +45,6 @@ public class UserServiceImpl implements UserService {
         this.jwtService = jwtService;
     }
 
-    @Override
     public UserResponseDto registerUser(UserRegistrationRequestDto userRegistrationRequest) {
         if (userRepository.existsByEmail(userRegistrationRequest.email())) {
             throw new EmailAlreadyExistsException("Email is already registered");
@@ -56,7 +56,6 @@ public class UserServiceImpl implements UserService {
         return mapper.convertValue(userRepository.save(user), UserResponseDto.class);
     }
 
-    @Override
     public LoginResponse verify(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
@@ -77,26 +76,22 @@ public class UserServiceImpl implements UserService {
         throw new BadCredentialsException("Invalid username or password");
     }
 
-    @Override
     public List<UserResponseDto> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(user -> mapper.convertValue(user, UserResponseDto.class))
                 .toList();
     }
 
-    @Override
     public UserProfileDto getUserById(User authenticatedUser) {
         // Since the endpoint is now "me", we simply return the full profile
         // of the user that was already retrieved during authentication.
         return getFullProfile(authenticatedUser);
     }
 
-    @Override
     public User findById(long id) {
         return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
     }
 
-    @Override
     public UserResponseDto updateUserById(long id, UpdateUserRequestDto updateUserRequestDto) {
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
 
@@ -130,7 +125,6 @@ public class UserServiceImpl implements UserService {
 
     }
 
-    @Override
     public void changeUserPassword(String email, LoginRequest loginRequest) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found with email " + email));
@@ -139,7 +133,6 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
-    @Override
     public UserResponseDto updateUserRole(long id, Role newRole) {
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
         user.setRole(newRole);
@@ -147,19 +140,16 @@ public class UserServiceImpl implements UserService {
         return mapper.convertValue(userRepository.save(user), UserResponseDto.class);
     }
 
-    @Override
     public void deleteUserById(Long id) {
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
         }
     }
 
-    @Override
     public void deleteMyAccount(Long id) {
         deleteUserById(id);
     }
-
-    @Override
+    
     public User getReferenceById(long id) {
         return userRepository.getReferenceById(id);
     }

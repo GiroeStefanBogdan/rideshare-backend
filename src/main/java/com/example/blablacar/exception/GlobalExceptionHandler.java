@@ -1,6 +1,6 @@
 package com.example.blablacar.exception;
 
-import com.example.blablacar.dto.ErrorResponseDto;
+import com.example.blablacar.dto.auth.ErrorResponseDto;
 import com.example.blablacar.exception.user.EmailAlreadyExistsException;
 import com.example.blablacar.exception.user.InvalidAgeException;
 import com.example.blablacar.exception.user.UserCarNotFoundException;
@@ -27,9 +27,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleRegisterValidationErrors(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> {
-            errors.put(error.getField(), error.getDefaultMessage());
-        });
+        ex.getBindingResult().getFieldErrors().forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
 
         return ResponseEntity.badRequest().body(errors);
     }

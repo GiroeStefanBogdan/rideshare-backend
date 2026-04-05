@@ -1,4 +1,4 @@
-package com.example.blablacar.dto;
+package com.example.blablacar.dto.user.car;
 
 import com.example.blablacar.model.enums.Gender;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -17,7 +17,7 @@ public record UpdateUserRequestDto(
         @Email(message = "Email should be valid")
         String email,
 
-        @Pattern(regexp = "^(\\+4|)?(07[0-8][0-9]|02[0-9]{2}|03[0-9]{2})(\\s|\\.|-)?[0-9]{3}(\\s|\\.|-)?[0-9]{3}$", message = "Invalid Romanian phone number")
+        @Pattern(regexp = "^(\\+4|)?(07[0-8][0-9]|02[0-9]{2}|03[0-9]{2})([\\s.\\-])?[0-9]{3}([\\s.\\-])?[0-9]{3}$", message = "Invalid Romanian phone number")
         String phoneNumber,
 
         @Past(message = "Birthday must be in the past")

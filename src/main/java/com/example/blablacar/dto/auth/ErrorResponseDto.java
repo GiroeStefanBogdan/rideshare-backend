@@ -1,4 +1,4 @@
-package com.example.blablacar.dto;
+package com.example.blablacar.dto.auth;
 
 import java.time.LocalDateTime;
 
