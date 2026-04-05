@@ -1,10 +1,6 @@
 package com.example.blablacar.controller;
 
-import com.example.blablacar.dto.LoginRequest;
-import com.example.blablacar.dto.LoginResponse;
-import com.example.blablacar.dto.UserProfileDto;
-import com.example.blablacar.dto.UserRegistrationRequestDto;
-import com.example.blablacar.dto.UserResponseDto;
+import com.example.blablacar.dto.*;
 import com.example.blablacar.model.enums.Role;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserPrincipal;
@@ -104,5 +100,12 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("users/me")
+    public ResponseEntity<UserResponseDto> updateUserProfile(@AuthenticationPrincipal UserPrincipal userPrincipal,
+                                                             @Valid @RequestBody UpdateUserRequest updateUserRequest) {
+        User authenticatedUser = userPrincipal.getUser();
+        UserResponseDto userResponseDto = userService.updateUserProfile(authenticatedUser, updateUserRequest);
 
+        return ResponseEntity.ok(userResponseDto);
+    }
 }

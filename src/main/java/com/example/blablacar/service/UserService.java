@@ -2,7 +2,7 @@ package com.example.blablacar.service;
 
 import com.example.blablacar.dto.LoginRequest;
 import com.example.blablacar.dto.LoginResponse;
-import com.example.blablacar.dto.UpdateUserRequestDto;
+import com.example.blablacar.dto.UpdateUserRequest;
 import com.example.blablacar.dto.UserProfileDto;
 import com.example.blablacar.dto.UserRegistrationRequestDto;
 import com.example.blablacar.dto.UserResponseDto;
@@ -24,7 +24,7 @@ public interface UserService {
 
     User findById(long id);
 
-    UserResponseDto updateUserById(long requestedUserId, UpdateUserRequestDto updateUserRequestDto);
+    UserResponseDto updateUserProfile(User authenticatedUser, UpdateUserRequest updateUserRequestDto);
 
     void changeUserPassword(String email, LoginRequest loginRequest);
 
