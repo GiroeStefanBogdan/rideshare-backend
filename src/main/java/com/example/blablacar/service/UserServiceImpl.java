@@ -2,7 +2,7 @@ package com.example.blablacar.service;
 
 import com.example.blablacar.dto.LoginRequest;
 import com.example.blablacar.dto.LoginResponse;
-import com.example.blablacar.dto.UpdateUserRequestDto;
+import com.example.blablacar.dto.UpdateUserRequest;
 import com.example.blablacar.dto.UserProfileDto;
 import com.example.blablacar.dto.UserPublicProfileDto;
 import com.example.blablacar.dto.UserRegistrationRequestDto;
@@ -97,36 +97,35 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponseDto updateUserById(long id, UpdateUserRequestDto updateUserRequestDto) {
-        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
+    public UserResponseDto updateUserProfile(User authenticatedUser, UpdateUserRequest updateUserRequest) {
 
-        // if the new email is different then the existing email
-        if (updateUserRequestDto.email() != null && !updateUserRequestDto.email().equalsIgnoreCase(user.getEmail())) {
-            if (userRepository.existsByEmail(updateUserRequestDto.email())) {
+        // if the new email is different than the existing email
+        if (updateUserRequest.email() != null && !updateUserRequest.email().equalsIgnoreCase(authenticatedUser.getEmail())) {
+            if (userRepository.existsByEmail(updateUserRequest.email())) {
                 throw new EmailAlreadyExistsException("This email already exist");
             }
 
-            user.setEmail(updateUserRequestDto.email());
+            authenticatedUser.setEmail(updateUserRequest.email());
         }
 
-        if (updateUserRequestDto.name() != null && !updateUserRequestDto.name().isBlank()) {
-            user.setName(updateUserRequestDto.name());
+        if (updateUserRequest.name() != null && !updateUserRequest.name().isBlank()) {
+            authenticatedUser.setName(updateUserRequest.name());
         }
 
-        if (updateUserRequestDto.phoneNumber() != null && !updateUserRequestDto.phoneNumber().isBlank()) {
-            user.setPhoneNumber(updateUserRequestDto.phoneNumber());
+        if (updateUserRequest.phoneNumber() != null && !updateUserRequest.phoneNumber().isBlank()) {
+            authenticatedUser.setPhoneNumber(updateUserRequest.phoneNumber());
         }
 
-        if (updateUserRequestDto.birthday() != null) {
-            validateAge(updateUserRequestDto.birthday());
-            user.setBirthday(updateUserRequestDto.birthday());
+        if (updateUserRequest.birthday() != null) {
+            validateAge(updateUserRequest.birthday());
+            authenticatedUser.setBirthday(updateUserRequest.birthday());
         }
 
-        if (updateUserRequestDto.gender() != null) {
-            user.setGender(updateUserRequestDto.gender());
+        if (updateUserRequest.gender() != null) {
+            authenticatedUser.setGender(updateUserRequest.gender());
         }
 
-        return mapper.convertValue(userRepository.save(user), UserResponseDto.class);
+        return mapper.convertValue(userRepository.save(authenticatedUser), UserResponseDto.class);
 
     }
 
