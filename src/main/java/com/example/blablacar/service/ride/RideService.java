@@ -17,12 +17,15 @@ import com.example.blablacar.repository.location.AdministrativeUnitRepository;
 import com.example.blablacar.repository.location.StreetRepository;
 import com.example.blablacar.repository.ride.RideRepository;
 import com.example.blablacar.repository.ride.RideStopRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -59,10 +62,11 @@ public class RideService {
         if (foundStreets.size() != streetsStops.size()) {
             throw new InvalidRideStopException();
         }
-        List<RideStopDTO> adminUnitStops = collect.get(Boolean.FALSE);
-
-        List<AdministrativeUnit> foundAdminUnits =
-                administrativeUnitRepository.findAllById(adminUnitStops.stream().map(RideStopDTO::id).toList());
+        Set<Long> adminUnitStops =
+                collect.get(Boolean.FALSE).stream().map(RideStopDTO::id).collect(Collectors.toCollection(
+                        HashSet::new));
+        foundStreets.forEach(street -> adminUnitStops.add(street.getLocation().getId()));
+        List<AdministrativeUnit> foundAdminUnits = administrativeUnitRepository.findAllById(adminUnitStops);
         if (foundAdminUnits.size() != adminUnitStops.size()) {
             throw new InvalidRideStopException();
         }
@@ -84,9 +88,11 @@ public class RideService {
         }).toList();
         Ride ride = new Ride(user, rideStops.getFirst().getLocation(), rideStops.getLast().getLocation(), rideStops,
                 rideRequest.seatsTotal(), rideRequest.pricePerSeat(), rideRequest.departureAt());
+        rideStops.forEach(rideStop -> rideStop.setRide(ride));
         rideRepository.save(ride);
     }
 
+    @Transactional
     public void updateSeatNumber(final User user, final long rideId, final byte seatNumber) {
         Ride ride = rideRepository.findByIdForUpdate(rideId).orElseThrow(RideNotFoundException::new);
         if (ride.getDriver().getId() != user.getId()) {
@@ -96,8 +102,8 @@ public class RideService {
         int difference;
         if (seatNumber < ride.getSeatsTotal()) {
             difference = ride.getSeatsTotal() - seatNumber;
-            boolean canModifySeats = rideStops.stream().anyMatch(stop -> stop.getAvailableSeats() < difference);
-            if (!canModifySeats) {
+            boolean cantModifySeats = rideStops.stream().anyMatch(stop -> stop.getAvailableSeats() < difference);
+            if (cantModifySeats) {
                 throw new InvalidRideStopException();
             }
         } else {
@@ -108,6 +114,7 @@ public class RideService {
         rideRepository.save(ride);
     }
 
+    @Transactional
     public void deleteRide(final User user, final long rideId) {
         Ride ride = rideRepository.findByIdForUpdate(rideId).orElseThrow(RideNotFoundException::new);
         if (ride.getDriver().getId() != user.getId()) {
