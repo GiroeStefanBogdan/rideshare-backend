@@ -2,7 +2,7 @@ package com.example.blablacar.service.user;
 
 import com.example.blablacar.dto.auth.LoginRequest;
 import com.example.blablacar.dto.auth.LoginResponse;
-import com.example.blablacar.dto.user.car.UpdateUserRequestDto;
+import com.example.blablacar.dto.user.UpdateUserRequest;
 import com.example.blablacar.dto.user.UserProfileDto;
 import com.example.blablacar.dto.user.UserPublicProfileDto;
 import com.example.blablacar.dto.user.UserRegistrationRequestDto;
@@ -88,40 +88,36 @@ public class UserService {
         return getFullProfile(authenticatedUser);
     }
 
-    public User findById(long id) {
-        return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
-    }
+    public UserResponseDto updateUserProfile(User authenticatedUser, UpdateUserRequest updateUserRequest) {
 
-    public UserResponseDto updateUserById(long id, UpdateUserRequestDto updateUserRequestDto) {
-        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
-
-        // if the new email is different then the existing email
-        if (updateUserRequestDto.email() != null && !updateUserRequestDto.email().equalsIgnoreCase(user.getEmail())) {
-            if (userRepository.existsByEmail(updateUserRequestDto.email())) {
+        // if the new email is different from the existing email
+        if (updateUserRequest.email() != null && !updateUserRequest.email()
+                .equalsIgnoreCase(authenticatedUser.getEmail())) {
+            if (userRepository.existsByEmail(updateUserRequest.email())) {
                 throw new EmailAlreadyExistsException("This email already exist");
             }
 
-            user.setEmail(updateUserRequestDto.email());
+            authenticatedUser.setEmail(updateUserRequest.email());
         }
 
-        if (updateUserRequestDto.name() != null && !updateUserRequestDto.name().isBlank()) {
-            user.setName(updateUserRequestDto.name());
+        if (updateUserRequest.name() != null && !updateUserRequest.name().isBlank()) {
+            authenticatedUser.setName(updateUserRequest.name());
         }
 
-        if (updateUserRequestDto.phoneNumber() != null && !updateUserRequestDto.phoneNumber().isBlank()) {
-            user.setPhoneNumber(updateUserRequestDto.phoneNumber());
+        if (updateUserRequest.phoneNumber() != null && !updateUserRequest.phoneNumber().isBlank()) {
+            authenticatedUser.setPhoneNumber(updateUserRequest.phoneNumber());
         }
 
-        if (updateUserRequestDto.birthday() != null) {
-            validateAge(updateUserRequestDto.birthday());
-            user.setBirthday(updateUserRequestDto.birthday());
+        if (updateUserRequest.birthday() != null) {
+            validateAge(updateUserRequest.birthday());
+            authenticatedUser.setBirthday(updateUserRequest.birthday());
         }
 
-        if (updateUserRequestDto.gender() != null) {
-            user.setGender(updateUserRequestDto.gender());
+        if (updateUserRequest.gender() != null) {
+            authenticatedUser.setGender(updateUserRequest.gender());
         }
 
-        return mapper.convertValue(userRepository.save(user), UserResponseDto.class);
+        return mapper.convertValue(userRepository.save(authenticatedUser), UserResponseDto.class);
 
     }
 
@@ -149,7 +145,7 @@ public class UserService {
     public void deleteMyAccount(Long id) {
         deleteUserById(id);
     }
-    
+
     public User getReferenceById(long id) {
         return userRepository.getReferenceById(id);
     }
