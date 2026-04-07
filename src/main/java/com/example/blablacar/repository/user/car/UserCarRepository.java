@@ -1,9 +1,8 @@
-package com.example.blablacar.repository;
+package com.example.blablacar.repository.user.car;
 
 import com.example.blablacar.model.user.UserCar;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;

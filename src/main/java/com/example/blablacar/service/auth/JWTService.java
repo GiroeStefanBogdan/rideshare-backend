@@ -1,4 +1,4 @@
-package com.example.blablacar.service;
+package com.example.blablacar.service.auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

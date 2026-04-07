@@ -1,11 +1,11 @@
 package com.example.blablacar.controller;
 
-import com.example.blablacar.dto.UpdateUserCarRequest;
-import com.example.blablacar.dto.UserCarRequest;
-import com.example.blablacar.dto.UserCarResponse;
+import com.example.blablacar.dto.user.car.UpdateUserCarRequest;
+import com.example.blablacar.dto.user.car.UserCarRequest;
+import com.example.blablacar.dto.user.car.UserCarResponse;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserPrincipal;
-import com.example.blablacar.service.UserCarService;
+import com.example.blablacar.service.user.car.UserCarService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

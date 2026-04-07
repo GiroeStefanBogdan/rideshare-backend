@@ -1,4 +1,4 @@
-package com.example.blablacar.dto;
+package com.example.blablacar.dto.user.car;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 

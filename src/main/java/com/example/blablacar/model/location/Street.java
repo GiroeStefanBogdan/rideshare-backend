@@ -17,7 +17,7 @@ import java.math.BigDecimal;
  * Since: 4/1/2026
  */
 @Entity
-@Table(name = "street")
+@Table(name = "streets")
 public class Street {
 
     @Id
@@ -73,4 +73,6 @@ public class Street {
     public BigDecimal getLongitude() {
         return longitude;
     }
+
+
 }

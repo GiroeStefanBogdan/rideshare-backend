@@ -1,6 +1,6 @@
 package com.example.blablacar.exception;
 
-import com.example.blablacar.dto.ErrorResponseDto;
+import com.example.blablacar.dto.auth.ErrorResponseDto;
 import com.example.blablacar.exception.user.EmailAlreadyExistsException;
 import com.example.blablacar.exception.user.InvalidAgeException;
 import com.example.blablacar.exception.user.UserCarNotFoundException;

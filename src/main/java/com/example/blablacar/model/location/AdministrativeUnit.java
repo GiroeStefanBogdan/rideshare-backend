@@ -57,7 +57,7 @@ public class AdministrativeUnit {
     private int priority;
 
     @Column(name = "population")
-    private long population;
+    private Long population;
 
     // Getters and setters
 

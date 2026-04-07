@@ -1,12 +1,13 @@
-package com.example.blablacar.service;
+package com.example.blablacar.service.user.car;
 
-import com.example.blablacar.dto.UpdateUserCarRequest;
-import com.example.blablacar.dto.UserCarRequest;
-import com.example.blablacar.dto.UserCarResponse;
+import com.example.blablacar.dto.user.car.UpdateUserCarRequest;
+import com.example.blablacar.dto.user.car.UserCarRequest;
+import com.example.blablacar.dto.user.car.UserCarResponse;
+import com.example.blablacar.exception.user.UserCarNotFoundException;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserCar;
-import com.example.blablacar.repository.UserCarRepository;
-import com.example.blablacar.exception.user.UserCarNotFoundException;
+import com.example.blablacar.repository.user.car.UserCarRepository;
+import com.example.blablacar.service.user.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
@@ -37,12 +38,6 @@ public class UserCarService {
         UserCar userCar = new UserCar(user, request.brand(), request.model(), request.color(), request.year(), request.licensePlate(), request.numberOfSeats());
         UserCar savedCar = userCarRepository.save(userCar);
         return toDto(savedCar);
-    }
-
-    @Transactional(readOnly = true)
-    public UserCar findById(long carId) {
-        return userCarRepository.findById(carId)
-                .orElseThrow(() -> new UserCarNotFoundException(carId));
     }
 
     @Transactional

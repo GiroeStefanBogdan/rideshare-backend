@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 import java.time.OffsetDateTime;
 
@@ -28,6 +29,9 @@ public class RideStop {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Short version;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ride_id", nullable = false)
     private Ride ride;
@@ -39,30 +43,31 @@ public class RideStop {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "street_id")
     private Street street;
-    @Column(name = "note", length = 200)
-    private String note;
 
     @Column(name = "stop_order", nullable = false)
-    private Short stopOrder;
+    private Byte stopOrder;
 
     @Column(name = "departs_at")
     private OffsetDateTime departsAt;
 
+    @Column(name = "available_seats", nullable = false)
+    private Byte availableSeats;
+
+    @Column(name = "price_per_seat")
+    private Short pricePerSeat;
+
     protected RideStop() {
     }
 
-    public RideStop(Ride ride,
-                    AdministrativeUnit administrativeUnit,
-                    Street street,
-                    Short stopOrder,
-                    OffsetDateTime departsAt,
-                    String note) {
-        this.ride = ride;
+    public RideStop(final AdministrativeUnit administrativeUnit, final Street street, final Byte stopOrder,
+                    final OffsetDateTime departsAt,
+                    final Byte availableSeats, final Short pricePerSeat) {
         this.administrativeUnit = administrativeUnit;
         this.street = street;
         this.stopOrder = stopOrder;
         this.departsAt = departsAt;
-        this.note = note;
+        this.availableSeats = availableSeats;
+        this.pricePerSeat = pricePerSeat;
     }
 
     public Long getId() {
@@ -85,35 +90,11 @@ public class RideStop {
         this.administrativeUnit = administrativeUnit;
     }
 
-    public String getNote() {
-        return note;
+    public Byte getAvailableSeats() {
+        return availableSeats;
     }
 
-    public void setNote(String note) {
-        this.note = note;
-    }
-
-    public Short getStopOrder() {
-        return stopOrder;
-    }
-
-    public void setStopOrder(Short stopOrder) {
-        this.stopOrder = stopOrder;
-    }
-
-    public OffsetDateTime getDepartsAt() {
-        return departsAt;
-    }
-
-    public void setDepartsAt(OffsetDateTime departsAt) {
-        this.departsAt = departsAt;
-    }
-
-    public Street getStreet() {
-        return street;
-    }
-
-    public void setStreet(final Street street) {
-        this.street = street;
+    public void setAvailableSeats(final Byte availableSeats) {
+        this.availableSeats = availableSeats;
     }
 }
