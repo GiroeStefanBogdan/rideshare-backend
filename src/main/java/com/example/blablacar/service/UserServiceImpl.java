@@ -20,8 +20,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.json.JsonMapper;
-
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
@@ -29,7 +27,6 @@ import java.util.List;
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final JsonMapper mapper;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -37,7 +34,6 @@ public class UserServiceImpl implements UserService {
 
     public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
                            AuthenticationManager authenticationManager, JWTService jwtService) {
-        this.mapper = new JsonMapper();
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -53,7 +49,7 @@ public class UserServiceImpl implements UserService {
         User user = new User(userRegistrationRequest.name(), userRegistrationRequest.email(),
                 passwordEncoder.encode(userRegistrationRequest.password()), userRegistrationRequest.gender(),
                 userRegistrationRequest.birthday(), userRegistrationRequest.phoneNumber());
-        return mapper.convertValue(userRepository.save(user), UserResponseDto.class);
+        return UserResponseDto.from(userRepository.save(user));
     }
 
     @Override
@@ -80,7 +76,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserResponseDto> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(user -> mapper.convertValue(user, UserResponseDto.class))
+                .map(UserResponseDto::from)
                 .toList();
     }
 
@@ -125,7 +121,7 @@ public class UserServiceImpl implements UserService {
             authenticatedUser.setGender(updateUserRequest.gender());
         }
 
-        return mapper.convertValue(userRepository.save(authenticatedUser), UserResponseDto.class);
+        return UserResponseDto.from(userRepository.save(authenticatedUser));
 
     }
 
@@ -143,7 +139,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
         user.setRole(newRole);
 
-        return mapper.convertValue(userRepository.save(user), UserResponseDto.class);
+        return UserResponseDto.from(userRepository.save(user));
     }
 
     @Override
