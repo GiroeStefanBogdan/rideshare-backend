@@ -17,6 +17,7 @@ import com.example.blablacar.repository.location.AdministrativeUnitRepository;
 import com.example.blablacar.repository.location.StreetRepository;
 import com.example.blablacar.repository.ride.RideRepository;
 import com.example.blablacar.repository.ride.RideStopRepository;
+import io.jsonwebtoken.lang.Collections;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -50,7 +51,7 @@ public class RideService {
         this.rideStopRepository = rideStopRepository;
     }
 
-    public void save(final User user, final RideDTO rideRequest) {
+    public Long save(final User user, final RideDTO rideRequest) {
         if (OffsetDateTime.now().plusMonths(1L).isBefore(rideRequest.departureAt())) {
             throw new RideDateTooDistantException();
         }
@@ -63,7 +64,8 @@ public class RideService {
             throw new InvalidRideStopException();
         }
         Set<Long> adminUnitStops =
-                collect.get(Boolean.FALSE).stream().map(RideStopDTO::id).collect(Collectors.toCollection(
+                collect.getOrDefault(Boolean.FALSE, Collections.emptyList()).stream().map(RideStopDTO::id)
+                        .collect(Collectors.toCollection(
                         HashSet::new));
         foundStreets.forEach(street -> adminUnitStops.add(street.getLocation().getId()));
         List<AdministrativeUnit> foundAdminUnits = administrativeUnitRepository.findAllById(adminUnitStops);
@@ -89,7 +91,7 @@ public class RideService {
         Ride ride = new Ride(user, rideStops.getFirst().getLocation(), rideStops.getLast().getLocation(), rideStops,
                 rideRequest.seatsTotal(), rideRequest.pricePerSeat(), rideRequest.departureAt());
         rideStops.forEach(rideStop -> rideStop.setRide(ride));
-        rideRepository.save(ride);
+        return rideRepository.save(ride).getId();
     }
 
     @Transactional
