@@ -30,8 +30,8 @@ public class AdministrativeUnit {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "osm_id", nullable = false)
-    private Long osmId;
+    @Column(name = "osm_id", nullable = false, unique = true, length = 50)
+    private String osmId;
 
     @Column(name = "name", nullable = false, length = 100)
     private String name;
@@ -52,9 +52,6 @@ public class AdministrativeUnit {
 
     @Column(name = "longitude", precision = 9, scale = 6)
     private BigDecimal longitude;
-
-    @Column(name = "priority")
-    private int priority;
 
     @Column(name = "population")
     private Long population;
