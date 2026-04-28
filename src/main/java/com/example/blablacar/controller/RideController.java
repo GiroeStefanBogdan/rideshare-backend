@@ -33,10 +33,9 @@ public class RideController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> saveNewRide(@AuthenticationPrincipal UserPrincipal userPrincipal,
+    public ResponseEntity<Long> saveNewRide(@AuthenticationPrincipal UserPrincipal userPrincipal,
                                             @RequestBody @Valid RideDTO rideRequest) {
-        rideService.save(userPrincipal.getUser(), rideRequest);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(rideService.save(userPrincipal.getUser(), rideRequest));
     }
 
     @PatchMapping("{id}/seats")
