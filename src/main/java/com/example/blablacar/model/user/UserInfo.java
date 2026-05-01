@@ -1,7 +1,12 @@
 package com.example.blablacar.model.user;
 
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 
 import java.io.Serializable;
 
@@ -30,4 +35,34 @@ public class UserInfo implements Serializable {
 
     @Column(name = "pet_friendly", nullable = false)
     private boolean petFriendly;
+
+    @Column(name = "rating")
+    private Double rating;
+
+    @Column(name = "reviews_count")
+    private Integer reviewsCount;
+
+    public User getUser() {
+        return user;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public boolean isCanSmoke() {
+        return canSmoke;
+    }
+
+    public boolean isPetFriendly() {
+        return petFriendly;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public Integer getReviewsCount() {
+        return reviewsCount;
+    }
 }

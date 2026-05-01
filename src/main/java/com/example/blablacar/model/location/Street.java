@@ -34,6 +34,9 @@ public class Street {
     @Column(name = "name_norm", nullable = false, length = 150)
     private String nameNormalized;
 
+    @Column(name = "full_name", columnDefinition = "text")
+    private String fullName;
+
     @Column(name = "latitude", precision = 9, scale = 6)
     private BigDecimal latitude;
 
@@ -66,6 +69,10 @@ public class Street {
         this.name = name;
     }
 
+    public String getFullName() {
+        return fullName;
+    }
+
     public BigDecimal getLatitude() {
         return latitude;
     }
@@ -73,6 +80,5 @@ public class Street {
     public BigDecimal getLongitude() {
         return longitude;
     }
-
 
 }

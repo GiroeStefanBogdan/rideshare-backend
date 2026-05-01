@@ -97,4 +97,20 @@ public class RideStop {
     public void setAvailableSeats(final Byte availableSeats) {
         this.availableSeats = availableSeats;
     }
+
+    public Street getStreet() {
+        return street;
+    }
+
+    public OffsetDateTime getDepartsAt() {
+        return departsAt;
+    }
+
+    public Short getPricePerSeat() {
+        return pricePerSeat;
+    }
+
+    public Byte getStopOrder() {
+        return stopOrder;
+    }
 }
