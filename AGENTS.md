@@ -13,7 +13,7 @@ This is the **backend** of a minimalist ride-sharing prototype:
 
 - **Java 25** — virtual threads enabled, modern language features
 - **Spring Boot 4.0.6** — REST controllers, Spring Security (stateless JWT), Spring Data JPA
-- **PostgreSQL + PostGIS** — spatial data via Hibernate Spatial, OSM-sourced location data
+- **PostgreSQL + PostGIS** — spatial data via native SQL (hibernate-spatial is **not** a dependency), OSM-sourced location data
 - **SvelteKit frontend** — separate repo, communicates via REST, runs on `http://localhost:5173` by default
 
 Core features: email login, posting rides with multi-stop routes, searching rides by location (PostGIS spatial filtering), user profiles, reviews, user cars.
@@ -63,13 +63,17 @@ com.example.blablacar/
 ├── dto/                    # Data Transfer Objects — Java records, grouped by domain
 │   ├── auth/               # LoginRequest, LoginResponse, ErrorResponseDto
 │   ├── location/           # LocationResultDTO
-│   ├── ride/               # RideDTO, RideSearchRequestDTO, RideSearchResultDTO, ...
-│   └── user/               # UserProfileDto, UserRegistrationRequestDto, ...
-│       └── car/
+│   ├── ride/               # RideDTO, RideDriverDTO, RideSearchRequestDTO, RideSearchResultDTO,
+│   │                       #   RideStopBasicDTO, RideStopDTO
+│   └── user/               # UpdateUserRequest, UserProfileDto, UserPublicProfileDto,
+│       │                   #   UserRegistrationRequestDto, UserResponseDto
+│       └── car/            # UpdateUserCarRequest, UserCarRequest, UserCarResponse
 ├── exception/              # Custom exceptions + GlobalExceptionHandler
 │   ├── GlobalExceptionHandler.java
-│   ├── ride/               # RideNotFoundException, ForbiddenRideException, ...
-│   └── user/               # UserNotFoundException, EmailAlreadyExistsException, ...
+│   ├── ride/               # ForbiddenRideException, InvalidRideStopException,
+│   │                       #   RideDateTooDistantException, RideNotFoundException
+│   └── user/               # EmailAlreadyExistsException, InvalidAgeException,
+│                           #   UserCarNotFoundException, UserNotFoundException
 ├── model/                  # JPA entities — grouped by domain
 │   ├── enums/              # AuthProvider, Gender, Role, Status
 │   ├── location/           # AdministrativeUnit, AdministrativeUnitType, Street
@@ -77,15 +81,16 @@ com.example.blablacar/
 │   └── user/               # User, UserCar, UserInfo, UserPrincipal, UserReview
 ├── repository/             # Spring Data repositories — grouped by domain
 │   ├── location/           # AdministrativeUnitRepository, StreetRepository
-│   ├── ride/               # RideRepository, RideStopRepository, RideSearchRepository(Impl)
+│   ├── ride/               # RideRepository, RideSearchRepository, RideSearchRepositoryImpl,
+│   │                       #   RideStopRepository
 │   └── user/               # UserRepository
-│       └── car/
+│       └── car/            # UserCarRepository
 └── service/                # Business logic — grouped by domain
     ├── auth/               # JWTService
     ├── location/           # LocationService
     ├── ride/               # RideService
-    └── user/               # UserService, CustomUserDetailsService
-        └── car/
+    └── user/               # CustomUserDetailsService, UserService
+        └── car/            # UserCarService
 ```
 
 ### Key conventions
@@ -182,13 +187,13 @@ public class RideNotFoundException extends RuntimeException {
 
 ## Database & Persistence
 
-- **PostgreSQL** with **PostGIS** extension (spatial queries via `hibernate-spatial`)
+- **PostgreSQL** with **PostGIS** extension (spatial queries via native SQL — hibernate-spatial is **not** a dependency)
 - Connection pool: **HikariCP** (15 connections, prepared statement caching enabled)
 - `open-in-view: false` — no lazy loading outside of transactions
 - Batch inserts/updates enabled (`jdbc.batch_size: 25`)
 - Virtual threads enabled (`spring.threads.virtual.enabled: true`)
-- Database migrations live under `src/main/resources/db/migration/`
-- Location data (administrative units, streets) is pre-loaded from OpenStreetMap
+- Database migrations live under `src/main/resources/db/migration/` (numbered V2__ pattern, no V1 baseline)
+- Location data (administrative units, streets) is pre-loaded from OpenStreetMap via scripts in `osm refresh/`
 
 ### Profiles
 
@@ -244,6 +249,12 @@ Generate together:
 ---
 
 ## Build & Run
+
+Checkstyle (`maven-checkstyle-plugin:3.6.0`) runs at the `validate` phase and SpotBugs (`spotbugs-maven-plugin:4.9.8.3`) runs at `compile`. Both fail the build on violations. Configuration files:
+
+- `checkstyle.xml` — Checkstyle rules
+- `checkstyle-suppressions.xml` — Checkstyle suppressions
+- `spotbugs-exclude.xml` — SpotBugs exclusion filters (suppresses `EI_EXPOSE_REP`/`EI_EXPOSE_REP2`)
 
 ```bash
 # Run the application (dev profile)
