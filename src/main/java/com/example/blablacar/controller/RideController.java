@@ -1,6 +1,8 @@
 package com.example.blablacar.controller;
 
 import com.example.blablacar.dto.ride.RideDTO;
+import com.example.blablacar.dto.ride.RideSearchRequestDTO;
+import com.example.blablacar.dto.ride.RideSearchResultDTO;
 import com.example.blablacar.model.user.UserPrincipal;
 import com.example.blablacar.service.ride.RideService;
 import jakarta.validation.Valid;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Author: AlexandruDicu
@@ -51,5 +55,10 @@ public class RideController {
                                            @PathVariable long id){
         rideService.deleteRide(userPrincipal.getUser(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/search")
+    public List<RideSearchResultDTO> search(@RequestBody @Valid RideSearchRequestDTO request) {
+        return rideService.searchRides(request);
     }
 }

@@ -72,4 +72,16 @@ public class AdministrativeUnit {
 
     public List<AdministrativeUnit> getChildren() { return children; }
     public void setChildren(List<AdministrativeUnit> children) { this.children = children; }
+
+    public BigDecimal getLatitude() {
+        return latitude;
+    }
+
+    public BigDecimal getLongitude() {
+        return longitude;
+    }
+
+    public Long getPopulation() {
+        return population;
+    }
 }

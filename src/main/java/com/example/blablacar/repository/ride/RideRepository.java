@@ -16,7 +16,7 @@ import java.util.Optional;
  */
 @Repository
 @Transactional
-public interface RideRepository extends JpaRepository<Ride, Long> {
+public interface RideRepository extends JpaRepository<Ride, Long>, RideSearchRepository {
 
     @Query("select r from Ride r where r.id = :id")
     @Lock(LockModeType.PESSIMISTIC_WRITE)

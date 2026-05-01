@@ -1,9 +1,18 @@
 package com.example.blablacar.model.user;
 
+import com.example.blablacar.model.enums.AuthProvider;
 import com.example.blablacar.model.enums.Gender;
 import com.example.blablacar.model.enums.Role;
-import com.example.blablacar.model.enums.AuthProvider;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.io.Serializable;
@@ -61,6 +70,10 @@ public class User implements Serializable {
 
     @OneToOne(mappedBy = "user")
     private UserInfo userInfo;
+
+    public UserInfo getUserInfo() {
+        return userInfo;
+    }
 
     @OneToMany(mappedBy = "user")
     private List<UserCar> cars;

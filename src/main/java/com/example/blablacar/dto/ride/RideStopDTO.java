@@ -1,6 +1,5 @@
 package com.example.blablacar.dto.ride;
 
-import com.example.blablacar.model.location.AdministrativeUnitType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -9,7 +8,7 @@ import jakarta.validation.constraints.Positive;
  * Since: 4/4/2026
  */
 public record RideStopDTO(@Positive Long id,
-                          @NotNull AdministrativeUnitType type,
+                          @NotNull String type,
                           @Positive Byte stopOrder,
                           @Positive Short price) {
 }

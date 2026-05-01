@@ -1,6 +1,10 @@
 package com.example.blablacar.service.ride;
 
 import com.example.blablacar.dto.ride.RideDTO;
+import com.example.blablacar.dto.ride.RideDriverDTO;
+import com.example.blablacar.dto.ride.RideSearchRequestDTO;
+import com.example.blablacar.dto.ride.RideSearchResultDTO;
+import com.example.blablacar.dto.ride.RideStopBasicDTO;
 import com.example.blablacar.dto.ride.RideStopDTO;
 import com.example.blablacar.exception.ride.ForbiddenRideException;
 import com.example.blablacar.exception.ride.InvalidRideStopException;
@@ -8,16 +12,17 @@ import com.example.blablacar.exception.ride.RideDateTooDistantException;
 import com.example.blablacar.exception.ride.RideNotFoundException;
 import com.example.blablacar.model.enums.Status;
 import com.example.blablacar.model.location.AdministrativeUnit;
-import com.example.blablacar.model.location.AdministrativeUnitType;
 import com.example.blablacar.model.location.Street;
 import com.example.blablacar.model.ride.Ride;
 import com.example.blablacar.model.ride.RideStop;
 import com.example.blablacar.model.user.User;
+import com.example.blablacar.model.user.UserInfo;
 import com.example.blablacar.repository.location.AdministrativeUnitRepository;
 import com.example.blablacar.repository.location.StreetRepository;
 import com.example.blablacar.repository.ride.RideRepository;
 import com.example.blablacar.repository.ride.RideStopRepository;
 import io.jsonwebtoken.lang.Collections;
+import jakarta.persistence.Tuple;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -56,7 +61,7 @@ public class RideService {
             throw new RideDateTooDistantException();
         }
         Map<Boolean, List<RideStopDTO>> collect = rideRequest.rideStops().stream()
-                .collect(Collectors.groupingBy(r -> AdministrativeUnitType.STREET.equals(
+                .collect(Collectors.groupingBy(r -> "STREET".equals(
                         r.type())));
         List<RideStopDTO> streetsStops = collect.get(Boolean.TRUE);
         List<Street> foundStreets = streetRepository.findAllById(streetsStops.stream().map(RideStopDTO::id).toList());
@@ -79,7 +84,7 @@ public class RideService {
         List<RideStop> rideStops = rideRequest.rideStops().stream().map(stop -> {
             Street stopStreet = null;
             AdministrativeUnit stopAdminUnit;
-            if (stop.type().equals(AdministrativeUnitType.STREET)) {
+            if ("STREET".equals(stop.type())) {
                 stopStreet = idToStreet.get(stop.id());
                 stopAdminUnit = idToAdminUnit.get(stopStreet.getLocation().getId());
             } else {
@@ -126,5 +131,96 @@ public class RideService {
         rideStopRepository.deleteAllByRide(ride);
         ride.setStatus(Status.INACTIVE);
         rideRepository.save(ride);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  Ride search
+    // ──────────────────────────────────────────────────────────────
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<RideSearchResultDTO> searchRides(RideSearchRequestDTO request) {
+        double[] fromCoords = resolveCoordinates(request.fromId(), request.fromType());
+        double[] toCoords = resolveCoordinates(request.toId(), request.toType());
+
+        if (fromCoords == null || toCoords == null) {
+            return List.of();
+        }
+
+        List<Tuple> rows = rideRepository.searchRides(request, fromCoords[0], fromCoords[1], toCoords[0], toCoords[1]);
+
+        return rows.stream().map(this::mapRow).toList();
+    }
+
+    private double[] resolveCoordinates(Long id, String type) {
+        if ("STREET".equals(type)) {
+            return streetRepository.findById(id)
+                    .map(s -> new double[] {s.getLatitude().doubleValue(), s.getLongitude().doubleValue()})
+                    .orElse(null);
+        }
+        return administrativeUnitRepository.findById(id)
+                .map(a -> new double[] {a.getLatitude().doubleValue(), a.getLongitude().doubleValue()})
+                .orElse(null);
+    }
+
+    private RideSearchResultDTO mapRow(Tuple row) {
+        long rideId = row.get("ride_id", Number.class).longValue();
+        long rsFromId = row.get("rs_from_id", Number.class).longValue();
+        long rsToId = row.get("rs_to_id", Number.class).longValue();
+        double distStart = row.get("dist_start_km", Number.class).doubleValue();
+        double distEnd = row.get("dist_end_km", Number.class).doubleValue();
+
+        Ride ride = rideRepository.findById(rideId).orElseThrow(RideNotFoundException::new);
+        RideStop fromStop = rideStopRepository.findById(rsFromId).orElseThrow();
+        RideStop toStop = rideStopRepository.findById(rsToId).orElseThrow();
+
+        User driver = ride.getDriver();
+        UserInfo info = driver.getUserInfo();
+
+        RideDriverDTO driverDTO = new RideDriverDTO(
+                driver.getId(),
+                driver.getName(),
+                null,  // avatarUrl — not yet implemented
+                (info != null && info.getRating() != null) ? info.getRating() : 0.0,
+                info != null && info.getReviewsCount() != null ? info.getReviewsCount() : 0,
+                info != null && info.isCanSmoke(),
+                info != null && info.isPetFriendly()
+        );
+
+        RideStopBasicDTO startDTO = new RideStopBasicDTO(
+                fromStop.getId(),
+                fromStop.getStreet() != null
+                        ? fromStop.getStreet().getName()
+                        : fromStop.getLocation().getName(),
+                fromStop.getDepartsAt() != null
+                        ? fromStop.getDepartsAt().toString()
+                        : null
+        );
+
+        RideStopBasicDTO endDTO = new RideStopBasicDTO(
+                toStop.getId(),
+                toStop.getStreet() != null
+                        ? toStop.getStreet().getName()
+                        : toStop.getLocation().getName(),
+                toStop.getDepartsAt() != null
+                        ? toStop.getDepartsAt().toString()
+                        : null
+        );
+
+        int totalPrice = 0;
+        if (fromStop.getPricePerSeat() != null) {
+            int endPrice = toStop.getPricePerSeat() != null ? toStop.getPricePerSeat() : 0;
+            totalPrice = fromStop.getPricePerSeat() - endPrice;
+        }
+
+        return new RideSearchResultDTO(
+                ride.getId(),
+                driverDTO,
+                fromStop.getAvailableSeats(),
+                totalPrice,
+                startDTO,
+                endDTO,
+                distStart,
+                distEnd
+        );
     }
 }

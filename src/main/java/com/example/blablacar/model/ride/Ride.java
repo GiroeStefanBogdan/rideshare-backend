@@ -98,4 +98,20 @@ public class Ride {
     public void setStatus(final Status status) {
         this.status = status;
     }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public List<RideStop> getRideStops() {
+        return rideStops;
+    }
+
+    public Short getPricePerSeat() {
+        return pricePerSeat;
+    }
+
+    public OffsetDateTime getDepartureAt() {
+        return departureAt;
+    }
 }
