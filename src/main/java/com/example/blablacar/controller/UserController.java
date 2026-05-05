@@ -9,6 +9,8 @@ import com.example.blablacar.dto.user.UserResponseDto;
 import com.example.blablacar.model.enums.Role;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserPrincipal;
+import com.example.blablacar.service.auth.AuthenticationService;
+import com.example.blablacar.service.user.RegistrationService;
 import com.example.blablacar.service.user.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,24 +36,31 @@ import java.util.List;
 @RestController
 public class UserController {
 
+    private final RegistrationService registrationService;
+    private final AuthenticationService authenticationService;
     private final UserService userService;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(final RegistrationService registrationService,
+                          final AuthenticationService authenticationService,
+                          final UserService userService) {
+        this.registrationService = registrationService;
+        this.authenticationService = authenticationService;
         this.userService = userService;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserRegistrationRequestDto registerRequest) {
-        UserResponseDto userResponseDto = userService.registerUser(registerRequest);
+    public ResponseEntity<UserResponseDto> register(
+            @Valid @RequestBody final UserRegistrationRequestDto registerRequest) {
+        UserResponseDto userResponseDto = registrationService.register(registerRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponseDto);
-
     }
 
     @PostMapping(value = "/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest user) {
-        LoginResponse loginResponse = userService.verify(user);
-        ResponseCookie cookie = ResponseCookie.from("token", loginResponse.token()).httpOnly(true).secure(false) // use true on HTTPS
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid final LoginRequest user) {
+        LoginResponse loginResponse = authenticationService.verify(user);
+        ResponseCookie cookie = ResponseCookie.from("token", loginResponse.token())
+                .httpOnly(true).secure(false)
                 .path("/").sameSite("Lax").maxAge(Duration.ofHours(24)).build();
 
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
@@ -66,45 +75,50 @@ public class UserController {
     }
 
     @GetMapping("/users/me")
-    public ResponseEntity<UserProfileDto> getUserById(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+    public ResponseEntity<UserProfileDto> getUserById(
+            @AuthenticationPrincipal final UserPrincipal userPrincipal) {
         User authenticatedUser = userPrincipal.getUser();
-        UserProfileDto profile = userService.getUserById(authenticatedUser);
+        UserProfileDto profile = userService.getProfile(authenticatedUser);
         return ResponseEntity.ok(profile);
     }
 
     @PatchMapping("/users/me/password")
-    public ResponseEntity<Void> changeUserPassword(@AuthenticationPrincipal UserPrincipal userPrincipal,
-                                                   LoginRequest loginRequest) {
+    public ResponseEntity<Void> changeUserPassword(
+            @AuthenticationPrincipal final UserPrincipal userPrincipal,
+            @RequestBody final LoginRequest loginRequest) {
         User user = userPrincipal.getUser();
-        userService.changeUserPassword(user.getEmail(), loginRequest);
+        userService.changePassword(user.getEmail(), loginRequest.getPassword());
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/admin/users/{id}/role")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserResponseDto> updateUserRole(@PathVariable long id, @Valid @RequestBody Role role) {
+    public ResponseEntity<UserResponseDto> updateUserRole(@PathVariable final long id,
+                                                          @Valid @RequestBody final Role role) {
         UserResponseDto userResponseDto = userService.updateUserRole(id, role);
         return ResponseEntity.ok(userResponseDto);
     }
 
     @DeleteMapping("/admin/users/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteUserById(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUserById(@PathVariable final Long id) {
         userService.deleteUserById(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/users/me")
-    public ResponseEntity<Void> deleteMyAccount(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+    public ResponseEntity<Void> deleteMyAccount(
+            @AuthenticationPrincipal final UserPrincipal userPrincipal) {
         userService.deleteMyAccount(userPrincipal.getUser().getId());
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("users/me")
-    public ResponseEntity<UserResponseDto> updateUserProfile(@AuthenticationPrincipal UserPrincipal userPrincipal,
-                                                             @Valid @RequestBody UpdateUserRequest updateUserRequest) {
+    public ResponseEntity<UserResponseDto> updateUserProfile(
+            @AuthenticationPrincipal final UserPrincipal userPrincipal,
+            @Valid @RequestBody final UpdateUserRequest updateUserRequest) {
         User authenticatedUser = userPrincipal.getUser();
-        UserResponseDto userResponseDto = userService.updateUserProfile(authenticatedUser, updateUserRequest);
+        UserResponseDto userResponseDto = userService.updateProfile(authenticatedUser, updateUserRequest);
 
         return ResponseEntity.ok(userResponseDto);
     }
