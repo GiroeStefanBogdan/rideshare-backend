@@ -1,5 +1,6 @@
 package com.example.blablacar.service.ride;
 
+import com.example.blablacar.dto.ride.ReserveRideRequestDTO;
 import com.example.blablacar.dto.ride.RideDTO;
 import com.example.blablacar.dto.ride.RideDriverDTO;
 import com.example.blablacar.dto.ride.RideSearchRequestDTO;
@@ -8,17 +9,22 @@ import com.example.blablacar.dto.ride.RideStopBasicDTO;
 import com.example.blablacar.dto.ride.RideStopDTO;
 import com.example.blablacar.exception.ride.ForbiddenRideException;
 import com.example.blablacar.exception.ride.InvalidRideStopException;
+import com.example.blablacar.exception.ride.NotEnoughSeatsException;
 import com.example.blablacar.exception.ride.RideDateTooDistantException;
+import com.example.blablacar.exception.ride.RideDepartedException;
+import com.example.blablacar.exception.ride.RideInactiveException;
 import com.example.blablacar.exception.ride.RideNotFoundException;
 import com.example.blablacar.model.enums.Status;
 import com.example.blablacar.model.location.AdministrativeUnit;
 import com.example.blablacar.model.location.Street;
+import com.example.blablacar.model.ride.Booking;
 import com.example.blablacar.model.ride.Ride;
 import com.example.blablacar.model.ride.RideStop;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserInfo;
 import com.example.blablacar.repository.location.AdministrativeUnitRepository;
 import com.example.blablacar.repository.location.StreetRepository;
+import com.example.blablacar.repository.ride.BookingRepository;
 import com.example.blablacar.repository.ride.RideRepository;
 import com.example.blablacar.repository.ride.RideStopRepository;
 import io.jsonwebtoken.lang.Collections;
@@ -45,15 +51,19 @@ public class RideService {
     private final AdministrativeUnitRepository administrativeUnitRepository;
     private final StreetRepository streetRepository;
     private final RideStopRepository rideStopRepository;
+    private final BookingRepository bookingRepository;
 
     @Autowired
     public RideService(final RideRepository rideRepository,
                        final AdministrativeUnitRepository administrativeUnitRepository,
-                       final StreetRepository streetRepository, final RideStopRepository rideStopRepository) {
+                       final StreetRepository streetRepository,
+                       final RideStopRepository rideStopRepository,
+                       final BookingRepository bookingRepository) {
         this.rideRepository = rideRepository;
         this.administrativeUnitRepository = administrativeUnitRepository;
         this.streetRepository = streetRepository;
         this.rideStopRepository = rideStopRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     public Long save(final User user, final RideDTO rideRequest) {
@@ -222,5 +232,51 @@ public class RideService {
                 distStart,
                 distEnd
         );
+    }
+
+    @Transactional
+    public long reserveSeats(final User passenger, final long rideId,
+                             final ReserveRideRequestDTO request) {
+        Ride ride = rideRepository.findByIdForUpdate(rideId)
+                .orElseThrow(RideNotFoundException::new);
+        if (ride.getStatus() != Status.ACTIVE) {
+            throw new RideInactiveException();
+        }
+//        if (ride.getDriver().getId() == passenger.getId()) {
+//            throw new ForbiddenRideException();
+//        }
+        if (ride.getDepartureAt().isBefore(OffsetDateTime.now())) {
+            throw new RideDepartedException();
+        }
+        List<RideStop> rideStops = rideStopRepository.findAllByRide(ride);
+        RideStop fromStop = rideStops.stream()
+                .filter(s -> s.getId().equals(request.fromStopId()))
+                .findFirst()
+                .orElseThrow(InvalidRideStopException::new);
+        RideStop toStop = rideStops.stream()
+                .filter(s -> s.getId().equals(request.toStopId()))
+                .findFirst()
+                .orElseThrow(InvalidRideStopException::new);
+        if (fromStop.getStopOrder() >= toStop.getStopOrder()) {
+            throw new InvalidRideStopException();
+        }
+        byte fromOrder = fromStop.getStopOrder();
+        byte toOrder = toStop.getStopOrder();
+        List<RideStop> segmentStops = rideStops.stream()
+                .filter(s -> s.getStopOrder() >= fromOrder && s.getStopOrder() < toOrder)
+                .toList();
+        for (RideStop stop : segmentStops) {
+            if (stop.getAvailableSeats() < request.seats()) {
+                throw new NotEnoughSeatsException();
+            }
+        }
+        for (RideStop stop : segmentStops) {
+            stop.setAvailableSeats((byte) (stop.getAvailableSeats() - request.seats()));
+        }
+        int fromPrice = fromStop.getPricePerSeat() != null ? fromStop.getPricePerSeat() : 0;
+        int toPrice = toStop.getPricePerSeat() != null ? toStop.getPricePerSeat() : 0;
+        int totalPrice = (fromPrice - toPrice) * request.seats();
+        Booking booking = new Booking(passenger, ride, fromStop, toStop, request.seats(), totalPrice);
+        return bookingRepository.save(booking).getId();
     }
 }

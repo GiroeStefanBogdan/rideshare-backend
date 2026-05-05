@@ -37,3 +37,4 @@ build/
 application-local.yml
 CLAUDE.md
 .kilocode/
+.kilo/

@@ -1,5 +1,6 @@
 package com.example.blablacar.controller;
 
+import com.example.blablacar.dto.ride.ReserveRideRequestDTO;
 import com.example.blablacar.dto.ride.RideDTO;
 import com.example.blablacar.dto.ride.RideSearchRequestDTO;
 import com.example.blablacar.dto.ride.RideSearchResultDTO;
@@ -60,5 +61,13 @@ public class RideController {
     @PostMapping("/search")
     public List<RideSearchResultDTO> search(@RequestBody @Valid RideSearchRequestDTO request) {
         return rideService.searchRides(request);
+    }
+
+    @PostMapping("/{id}/reserve")
+    public ResponseEntity<Long> reserveSeats(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable long id,
+            @RequestBody @Valid ReserveRideRequestDTO request) {
+        return ResponseEntity.ok(rideService.reserveSeats(userPrincipal.getUser(), id, request));
     }
 }
