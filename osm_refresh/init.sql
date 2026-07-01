@@ -1,5 +1,13 @@
 -- init.sql
 
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+ALTER TABLE admin_units ADD COLUMN IF NOT EXISTS admin_level integer;
+ALTER TABLE admin_units ADD COLUMN IF NOT EXISTS geom geometry(Geometry, 4326);
+ALTER TABLE streets ADD COLUMN IF NOT EXISTS geom geometry(MultiLineString, 4326);
+
 -- 1. Clear existing data to ensure a clean slate
 TRUNCATE TABLE streets, admin_units RESTART IDENTITY CASCADE;
 

@@ -52,7 +52,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponseDto> response =
                 handler.handleInvalidRideStop(new InvalidRideStopException());
 
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_CONTENT, response.getStatusCode());
         assertNotNull(response.getBody());
     }
 
