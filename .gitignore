@@ -3,7 +3,7 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-
+osm_refresh/romania-latest.osm.pbf
 ### STS ###
 .apt_generated
 .classpath
@@ -37,3 +37,4 @@ build/
 application-local.yml
 CLAUDE.md
 .kilocode/
+.kilo/

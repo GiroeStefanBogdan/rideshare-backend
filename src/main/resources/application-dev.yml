@@ -1,19 +1,14 @@
-db:
-  host: localhost
-  port: 5432
-  name: blablacar
-
 server:
   port: 8080
 
 spring:
   datasource:
-    username: my_user
-    password: my_password
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
 
 logging:
   level:

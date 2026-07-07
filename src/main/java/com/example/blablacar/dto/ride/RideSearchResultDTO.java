@@ -6,7 +6,7 @@ package com.example.blablacar.dto.ride;
 public record RideSearchResultDTO(
         long rideId,
         RideDriverDTO driver,
-        int seatsAvailable,
+        Integer seatsAvailable,
         int totalPrice,
         RideStopBasicDTO startStop,
         RideStopBasicDTO endStop,

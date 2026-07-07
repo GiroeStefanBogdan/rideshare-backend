@@ -128,3 +128,10 @@ Generate together:
 2. **Repository** (`repository/<domain>/`) — extends `JpaRepository`, custom queries in `*Impl` if needed
 3. **DTO(s)** — never expose the entity directly
 4. **SQL migration** (`src/main/resources/db/migration/`) — see [`docs/DATABASE.md`](docs/DATABASE.md) for naming conventions
+
+
+## Agent skills
+
+### Domain docs
+
+Single-context — `AGENTS.md` + `docs/` at the repo root serve as the domain documentation and architectural reference. See `docs/agents/domain.md`.
