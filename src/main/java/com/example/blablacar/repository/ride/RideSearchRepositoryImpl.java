@@ -5,8 +5,8 @@ import com.example.blablacar.dto.ride.RideSearchRequestDTO;
 import com.example.blablacar.dto.ride.RideSearchResultDTO;
 import com.example.blablacar.dto.ride.RideStopBasicDTO;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import jakarta.persistence.Tuple;
-import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
@@ -193,8 +193,9 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private List<Tuple> executeSearch(final StringBuilder sql, final Map<String, Object> params) {
-        final TypedQuery<Tuple> query = entityManager.createQuery(sql.toString(), Tuple.class);
+        final Query query = entityManager.createNativeQuery(sql.toString(), Tuple.class);
         params.forEach(query::setParameter);
         return query.getResultList();
     }
