@@ -1,10 +1,17 @@
 package com.example.blablacar.service.ride;
 
+import com.example.blablacar.dto.ride.BookedRideDTO;
+import com.example.blablacar.dto.ride.HostedRideDTO;
+import com.example.blablacar.dto.ride.MyRidesResponseDTO;
 import com.example.blablacar.dto.ride.ReserveRideRequestDTO;
 import com.example.blablacar.dto.ride.RideDTO;
+import com.example.blablacar.dto.ride.RideDriverDTO;
 import com.example.blablacar.dto.ride.RideSearchRequestDTO;
 import com.example.blablacar.dto.ride.RideSearchResultDTO;
+import com.example.blablacar.dto.ride.RideStopBasicDTO;
+import com.example.blablacar.dto.ride.RideStopDetailsDTO;
 import com.example.blablacar.exception.ride.ForbiddenRideException;
+import com.example.blablacar.exception.ride.InvalidRideScheduleException;
 import com.example.blablacar.exception.ride.InvalidRideStopException;
 import com.example.blablacar.exception.ride.NotEnoughSeatsException;
 import com.example.blablacar.exception.ride.RideDateTooDistantException;
@@ -16,6 +23,7 @@ import com.example.blablacar.model.ride.Booking;
 import com.example.blablacar.model.ride.Ride;
 import com.example.blablacar.model.ride.RideStop;
 import com.example.blablacar.model.user.User;
+import com.example.blablacar.model.user.UserInfo;
 import com.example.blablacar.repository.location.AdministrativeUnitRepository;
 import com.example.blablacar.repository.location.StreetRepository;
 import com.example.blablacar.repository.ride.BookingRepository;
@@ -25,7 +33,9 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -41,6 +51,7 @@ public class RideService {
     private final RideStopRepository rideStopRepository;
     private final BookingRepository bookingRepository;
     private final RideStopResolver rideStopResolver;
+    private final Clock clock;
 
     @Autowired
     public RideService(final RideRepository rideRepository,
@@ -48,22 +59,30 @@ public class RideService {
                        final StreetRepository streetRepository,
                        final RideStopRepository rideStopRepository,
                        final BookingRepository bookingRepository,
-                       final RideStopResolver rideStopResolver) {
+                       final RideStopResolver rideStopResolver,
+                       final Clock clock) {
         this.rideRepository = rideRepository;
         this.administrativeUnitRepository = administrativeUnitRepository;
         this.streetRepository = streetRepository;
         this.rideStopRepository = rideStopRepository;
         this.rideStopResolver = rideStopResolver;
         this.bookingRepository = bookingRepository;
+        this.clock = clock;
     }
 
+    @Transactional
     public Long save(final User user, final RideDTO rideRequest) {
-        if (OffsetDateTime.now().plusMonths(1L).isBefore(rideRequest.departureAt())) {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        List<RideStop> rideStops = rideStopResolver.resolve(rideRequest.rideStops(), rideRequest.seatsTotal());
+        OffsetDateTime departureAt = rideStops.getFirst().getDepartsAt();
+        if (!departureAt.isAfter(now)) {
+            throw new InvalidRideScheduleException("The first stop must be in the future");
+        }
+        if (now.plusMonths(1L).isBefore(departureAt)) {
             throw new RideDateTooDistantException();
         }
-        List<RideStop> rideStops = rideStopResolver.resolve(rideRequest.rideStops(), rideRequest.seatsTotal());
         Ride ride = new Ride(user, rideStops.getFirst().getLocation(), rideStops.getLast().getLocation(), rideStops,
-                rideRequest.seatsTotal(), rideRequest.pricePerSeat(), rideRequest.departureAt());
+                rideRequest.seatsTotal(), rideStops.getFirst().getPricePerSeat(), departureAt);
         rideStops.forEach(rs -> rs.setRide(ride));
         return rideRepository.save(ride).getId();
     }
@@ -97,7 +116,7 @@ public class RideService {
             throw new ForbiddenRideException();
         }
         //TODO Add notification to users in the future.
-        rideStopRepository.deleteAllByRide(ride);
+        // Preserve stops and bookings so cancelled rides remain visible in personal history.
         ride.setStatus(Status.INACTIVE);
         rideRepository.save(ride);
     }
@@ -112,6 +131,22 @@ public class RideService {
         }
 
         return rideRepository.searchRides(request, fromCoords[0], fromCoords[1], toCoords[0], toCoords[1]);
+    }
+
+    @Transactional
+    public MyRidesResponseDTO getMyRides(final User user) {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        OffsetDateTime monthAgo = now.minusMonths(1L);
+        List<Booking> upcomingBookings = bookingRepository.findUpcomingByPassengerId(user.getId(), now);
+        List<Booking> pastBookings = bookingRepository.findPastByPassengerId(user.getId(), monthAgo, now);
+        List<Ride> upcomingHostedRides = rideRepository.findUpcomingByDriverId(user.getId(), now);
+        List<Ride> pastHostedRides = rideRepository.findPastByDriverId(user.getId(), monthAgo, now);
+        return new MyRidesResponseDTO(
+                upcomingBookings.stream().map(this::mapBooking).toList(),
+                pastBookings.stream().map(this::mapBooking).toList(),
+                upcomingHostedRides.stream().map(this::mapHostedRide).toList(),
+                pastHostedRides.stream().map(this::mapHostedRide).toList()
+        );
     }
 
     private double[] resolveCoordinates(final Long id, final String type) {
@@ -136,7 +171,7 @@ public class RideService {
 //        if (ride.getDriver().getId() == passenger.getId()) {
 //            throw new ForbiddenRideException();
 //        }
-        if (ride.getDepartureAt().isBefore(OffsetDateTime.now())) {
+        if (ride.getDepartureAt().isBefore(OffsetDateTime.now(clock))) {
             throw new RideDepartedException();
         }
         List<RideStop> rideStops = rideStopRepository.findAllByRide(ride);
@@ -169,5 +204,58 @@ public class RideService {
         int totalPrice = (fromPrice - toPrice) * request.seats();
         Booking booking = new Booking(passenger, ride, fromStop, toStop, request.seats(), totalPrice);
         return bookingRepository.save(booking).getId();
+    }
+
+    private BookedRideDTO mapBooking(final Booking booking) {
+        Ride ride = booking.getRide();
+        Status status = booking.getStatus() == Status.INACTIVE || ride.getStatus() == Status.INACTIVE
+                ? Status.INACTIVE : Status.ACTIVE;
+        return new BookedRideDTO(
+                booking.getId(),
+                ride.getId(),
+                status,
+                mapDriver(ride.getDriver()),
+                booking.getSeats(),
+                booking.getTotalPrice(),
+                mapBasicStop(booking.getFromStop()),
+                mapBasicStop(booking.getToStop())
+        );
+    }
+
+    private HostedRideDTO mapHostedRide(final Ride ride) {
+        List<RideStopDetailsDTO> stops = ride.getRideStops().stream()
+                .sorted(Comparator.comparing(RideStop::getStopOrder))
+                .map(this::mapDetailedStop)
+                .toList();
+        return new HostedRideDTO(ride.getId(), ride.getStatus(), ride.getSeatsTotal(), stops);
+    }
+
+    private RideDriverDTO mapDriver(final User driver) {
+        UserInfo userInfo = driver.getUserInfo();
+        Double rating = userInfo == null || userInfo.getRating() == null
+                ? Double.valueOf(0.0) : userInfo.getRating();
+        Integer reviewsCount = userInfo == null || userInfo.getReviewsCount() == null
+                ? Integer.valueOf(0) : userInfo.getReviewsCount();
+        boolean smokingAllowed = userInfo != null && userInfo.isCanSmoke();
+        boolean petFriendly = userInfo != null && userInfo.isPetFriendly();
+        return new RideDriverDTO(driver.getId(), driver.getName(), null, rating, reviewsCount,
+                smokingAllowed, petFriendly);
+    }
+
+    private RideStopBasicDTO mapBasicStop(final RideStop stop) {
+        return new RideStopBasicDTO(stop.getId(), getLocationName(stop), toIsoString(stop.getDepartsAt()));
+    }
+
+    private RideStopDetailsDTO mapDetailedStop(final RideStop stop) {
+        return new RideStopDetailsDTO(stop.getId(), stop.getStopOrder(), getLocationName(stop),
+                toIsoString(stop.getDepartsAt()), stop.getAvailableSeats(), stop.getPricePerSeat());
+    }
+
+    private String getLocationName(final RideStop stop) {
+        return stop.getStreet() == null ? stop.getLocation().getName() : stop.getStreet().getName();
+    }
+
+    private String toIsoString(final OffsetDateTime value) {
+        return value == null ? null : value.toString();
     }
 }

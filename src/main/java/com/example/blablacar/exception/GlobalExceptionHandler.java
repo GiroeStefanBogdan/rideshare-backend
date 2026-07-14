@@ -3,6 +3,8 @@ package com.example.blablacar.exception;
 import com.example.blablacar.dto.auth.ErrorResponseDto;
 import com.example.blablacar.exception.ride.ForbiddenRideException;
 import com.example.blablacar.exception.ride.InvalidRideStopException;
+import com.example.blablacar.exception.ride.InvalidRidePricingException;
+import com.example.blablacar.exception.ride.InvalidRideScheduleException;
 import com.example.blablacar.exception.ride.RideDateTooDistantException;
 import com.example.blablacar.exception.ride.RideNotFoundException;
 import com.example.blablacar.exception.user.EmailAlreadyExistsException;
@@ -114,12 +116,38 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidRideStopException.class)
     public ResponseEntity<ErrorResponseDto> handleInvalidRideStop(final InvalidRideStopException exception) {
-        HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;
+        HttpStatus status = HttpStatus.UNPROCESSABLE_CONTENT;
         return ResponseEntity.status(status)
                 .body(new ErrorResponseDto(
                         LocalDateTime.now(),
                         status.value(),
                         "Invalid ride stop",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(InvalidRideScheduleException.class)
+    public ResponseEntity<ErrorResponseDto> handleInvalidRideSchedule(
+            final InvalidRideScheduleException exception) {
+        HttpStatus status = HttpStatus.UNPROCESSABLE_CONTENT;
+        return ResponseEntity.status(status)
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        status.value(),
+                        "Invalid ride schedule",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(InvalidRidePricingException.class)
+    public ResponseEntity<ErrorResponseDto> handleInvalidRidePricing(
+            final InvalidRidePricingException exception) {
+        HttpStatus status = HttpStatus.UNPROCESSABLE_CONTENT;
+        return ResponseEntity.status(status)
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        status.value(),
+                        "Invalid ride pricing",
                         exception.getMessage()
                 ));
     }

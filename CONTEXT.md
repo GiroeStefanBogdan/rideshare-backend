@@ -1,3 +1,3 @@
-# CONTEXT.md
+# Context
 
-Authoritative domain context: [AGENTS.md](AGENTS.md).
+Authoritative agent instructions: [AGENTS.md](AGENTS.md).

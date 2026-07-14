@@ -1,103 +1,50 @@
 # Architecture
 
-## Layering
+## Dependency direction
 
-```
-Controller → Service → Repository
-     ↕           ↕           ↕
-    DTO        Model      JPA / Native SQL
-```
-
-| Layer          | Convention                                                                                            |
-|----------------|-------------------------------------------------------------------------------------------------------|
-| Controller     | `@RestController`, thin — validates via `@Valid`, delegates to service, returns `ResponseEntity`      |
-| Service        | `@Service`, contains all business logic and orchestration                                             |
-| Repository     | Extends `JpaRepository`. Custom query logic goes in a `*Impl` class (Spring Data custom repo pattern) |
-| DTO            | Java `record`. Validation annotations live on DTO fields, not on entities                             |
-| Entity / Model | JPA `@Entity`, explicit getters/setters, `protected` no-arg constructor for JPA                       |
-| Exception      | `extends RuntimeException`, annotated with `@ResponseStatus`. Handled by `GlobalExceptionHandler`     |
-
----
-
-## Package Structure
-
-```
-com.example.blablacar/
-├── RideshareBackendApplication.java
-├── config/                 # Security, CORS, Web config, JWT filter
-│   ├── CorsConfig.java
-│   ├── JwtFilter.java
-│   ├── SecurityConfig.java
-│   └── WebConfig.java
-├── controller/             # REST controllers — thin, delegate to services
-│   ├── DashboardController.java
-│   ├── LocationController.java
-│   ├── RideController.java
-│   ├── UserCarController.java
-│   └── UserController.java
-├── dto/                    # Data Transfer Objects — Java records, grouped by domain
-│   ├── auth/               # LoginRequest, LoginResponse, ErrorResponseDto
-│   ├── location/           # LocationResultDTO
-│   ├── ride/               # RideDTO, RideDriverDTO, RideSearchRequestDTO, RideSearchResultDTO,
-│   │                       #   RideStopBasicDTO, RideStopDTO
-│   └── user/               # UpdateUserRequest, UserProfileDto, UserPublicProfileDto,
-│       │                   #   UserRegistrationRequestDto, UserResponseDto
-│       └── car/            # UpdateUserCarRequest, UserCarRequest, UserCarResponse
-├── exception/              # Custom exceptions + GlobalExceptionHandler
-│   ├── GlobalExceptionHandler.java
-│   ├── ride/               # ForbiddenRideException, InvalidRideStopException,
-│   │                       #   RideDateTooDistantException, RideNotFoundException
-│   └── user/               # EmailAlreadyExistsException, InvalidAgeException,
-│                           #   UserCarNotFoundException, UserNotFoundException
-├── model/                  # JPA entities — grouped by domain
-│   ├── enums/              # AuthProvider, Gender, Role, Status
-│   ├── location/           # AdministrativeUnit, AdministrativeUnitType, Street
-│   ├── ride/               # Ride, RideStop
-│   └── user/               # User, UserCar, UserInfo, UserPrincipal, UserReview
-├── repository/             # Spring Data repositories — grouped by domain
-│   ├── location/           # AdministrativeUnitRepository, StreetRepository
-│   ├── ride/               # RideRepository, RideSearchRepository, RideSearchRepositoryImpl,
-│   │                       #   RideStopRepository
-│   └── user/               # UserRepository
-│       └── car/            # UserCarRepository
-└── service/                # Business logic — grouped by domain
-    ├── auth/               # JWTService
-    ├── location/           # LocationService
-    ├── ride/               # RideService
-    └── user/               # CustomUserDetailsService, UserService
-        └── car/            # UserCarService
+```text
+Controller -> Service -> Repository -> Database
+     |           |           |
+    DTO        Model      JPA/native SQL
 ```
 
----
+Controllers handle HTTP concerns and validation. Services own business rules and orchestration. Repositories own persistence. DTOs are the only API boundary types.
 
-## DTOs
+## Packages
 
-- **Always use Java `record`s**
-- Place validation annotations (`@NotNull`, `@Size`, `@Min`, `@Positive`, `@Future`, etc.) directly on record components
-- Grouped by domain: `dto.auth`, `dto.ride`, `dto.user`, `dto.location`
-- Never expose JPA entities directly in API responses
+- `config`: security, JWT filtering, CORS, and web configuration.
+- `controller`: thin REST handlers.
+- `dto`: request and response records grouped by domain.
+- `exception`: domain exceptions and the global REST exception handler.
+- `model`: JPA entities and enums grouped by domain.
+- `repository`: Spring Data repositories; custom persistence logic belongs in `*Impl` classes.
+- `service`: domain services and authentication services.
 
----
+Domains are `auth`, `location`, `ride`, and `user`; user-car code is nested under `user`.
 
-## Entities
+## DTO rules
 
-- Explicit getters and setters — no Lombok
-- `protected` no-arg constructor (required by JPA)
-- `FetchType.LAZY` for all associations
-- `@CreationTimestamp` for `createdAt` fields
-- `@Enumerated(EnumType.STRING)` for all enums
-- `@JoinColumn` on the owning side, `mappedBy` on the inverse
+- Use records for new request and response DTOs.
+- Put validation annotations on request DTO components, not entities.
+- Never serialize entities directly.
+- Keep request and response shapes separate. Existing `LoginRequest` is a legacy class exception.
+- Use ISO-8601 values for `OffsetDateTime` and `yyyy-MM-dd` for `LocalDate`.
 
----
+## Entity rules
 
-## Exception Handling
+- JPA entities have explicit accessors and a protected no-argument constructor.
+- Associations are lazy unless a query explicitly fetches what a response needs.
+- Use `@Enumerated(EnumType.STRING)` for new enum fields.
+- Use `@CreationTimestamp` for generated creation timestamps.
+- The owning side declares `@JoinColumn`; inverse collections use `mappedBy`.
 
-```java
-@ResponseStatus(HttpStatus.NOT_FOUND)
-public class RideNotFoundException extends RuntimeException {
-}
-```
+## Persistence rules
 
-- Each domain has its own sub-package: `exception.ride`, `exception.user`
-- `GlobalExceptionHandler` (`@RestControllerAdvice`) maps exceptions to `ErrorResponseDto`
-- `MethodArgumentNotValidException` is caught globally and returns field-level validation messages
+- Derived Spring Data queries belong on repository interfaces.
+- Complex or native queries belong in a repository `*Impl` class.
+- Transactions belong at service operations that coordinate multiple writes or locking.
+- Map entities to DTOs inside the service layer.
+
+## Exceptions
+
+Domain exceptions live under `exception/<domain>`. The global handler maps known exceptions to `ErrorResponseDto`; new error cases must define their HTTP behavior.

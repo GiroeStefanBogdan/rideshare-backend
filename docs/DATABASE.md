@@ -2,55 +2,34 @@
 
 ## Stack
 
-- **PostgreSQL** with the **PostGIS** extension
-- Location data is sourced from OpenStreetMap (OSM)
-- Schema migrations are managed by **Flyway**
+PostgreSQL with PostGIS. Location data comes from OpenStreetMap. Flyway manages schema changes.
 
----
+## Migrations
 
-## Flyway Migrations
+Files live in `src/main/resources/db/migration/` and use:
 
-Migration files live in `src/main/resources/db/migration/`.
-
-### Naming convention
-
-```
+```text
 V{version}__{description}.sql
 ```
 
-- Version is a sequential integer: `V1__`, `V2__`, `V3__`, etc.
-- Description uses underscores, no spaces: `add_review_table`, not `add review table`
-- Two underscores between version and description
+Versions are sequential integers; descriptions use underscores.
 
-**Examples:**
-```
-V1__init_schema.sql
-V2__add_postGIS_extension.sql
-V3__add_ride_stops.sql
-V4__add_user_reviews.sql
-```
-
-### Rules
-
-- **Never modify a migration that has already been applied.** Flyway checksums applied migrations — any change will break the build.
-- New schema changes always go in a new migration file with the next version number.
-- Prefer additive migrations (new tables, new columns) over destructive ones (drops, renames). If a destructive migration is necessary, discuss first.
-- Always check `./mvnw flyway:info` before creating a new migration to confirm the current version.
-
----
+Never edit an applied migration. Before adding one, run `./mvnw flyway:info`. Use a new additive migration for every schema change.
 
 ## PostGIS
 
-- Geometry columns use `geography` type (not `geometry`) for distance calculations in metres
-- OSM-sourced data is loaded via migration scripts — do not hand-write location seed data
-- Native SQL queries involving spatial functions go in a `*Impl` repository class, not in JPQL
+- Use `geography` for distance calculations in metres.
+- Keep spatial/native SQL in repository `*Impl` classes.
+- Do not hand-write OSM seed data in application code.
 
----
+## JPA
 
-## Useful Commands
+Use lazy associations, explicit join columns, and string enum storage for new enum fields. Keep database constraints aligned with domain invariants, especially ride-stop ordering, seat bounds, and booking references.
+
+## Commands
 
 ```bash
-./mvnw flyway:migrate    # apply all pending migrations
-./mvnw flyway:info       # show applied vs pending migrations
-./mvnw flyway:validate   # verify checksums of applied migrations match files on disk
+./mvnw flyway:info
+./mvnw flyway:migrate
+./mvnw flyway:validate
 ```
