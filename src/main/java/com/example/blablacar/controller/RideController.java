@@ -3,6 +3,7 @@ package com.example.blablacar.controller;
 import com.example.blablacar.dto.ride.MyRidesResponseDTO;
 import com.example.blablacar.dto.ride.ReserveRideRequestDTO;
 import com.example.blablacar.dto.ride.RideDTO;
+import com.example.blablacar.dto.ride.RideDetailsDTO;
 import com.example.blablacar.dto.ride.RideSearchRequestDTO;
 import com.example.blablacar.dto.ride.RideSearchResultDTO;
 import com.example.blablacar.model.user.UserPrincipal;
@@ -49,6 +50,11 @@ public class RideController {
     public ResponseEntity<MyRidesResponseDTO> getMyRides(
             @AuthenticationPrincipal final UserPrincipal userPrincipal) {
         return ResponseEntity.ok(rideService.getMyRides(userPrincipal.getUser()));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<RideDetailsDTO> getRideDetails(@PathVariable final long id) {
+        return ResponseEntity.ok(rideService.getRideDetails(id));
     }
 
     @PatchMapping("{id}/seats")

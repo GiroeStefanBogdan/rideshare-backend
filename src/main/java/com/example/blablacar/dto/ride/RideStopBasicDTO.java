@@ -6,6 +6,7 @@ package com.example.blablacar.dto.ride;
 public record RideStopBasicDTO(
         long id,
         String locationName,
+        String municipalityName,
         String departsAt     // ISO 8601
 ) {
 }

@@ -2,6 +2,7 @@ package com.example.blablacar.service.user;
 
 import com.example.blablacar.dto.user.UpdateUserRequest;
 import com.example.blablacar.dto.user.UserProfileDto;
+import com.example.blablacar.dto.user.UserPublicProfileDto;
 import com.example.blablacar.dto.user.UserResponseDto;
 import com.example.blablacar.exception.user.EmailAlreadyExistsException;
 import com.example.blablacar.exception.user.UserNotFoundException;
@@ -36,6 +37,11 @@ public class UserService {
 
     public UserProfileDto getProfile(final User authenticatedUser) {
         return getFullProfile(authenticatedUser);
+    }
+
+    public UserPublicProfileDto getPublicProfile(final long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
+        return UserPublicProfileDto.from(user);
     }
 
     public UserResponseDto updateProfile(final User authenticatedUser,

@@ -10,7 +10,9 @@
 
 ## Route access
 
-`/login`, `/register`, `/error`, and `/dashboard` are public. CORS preflight (`OPTIONS /**`) is public. All other routes require authentication unless `SecurityConfig.PUBLIC_ENDPOINTS` changes.
+`/login`, `/register`, `/auth/logout`, `/error`, `/dashboard`, `/locations/search`, `/rides/search`,
+`GET /rides/{id}`, and `GET /users/{id}` are public. CORS preflight (`OPTIONS /**`) is public. All other
+routes require authentication unless `SecurityConfig` changes.
 
 Admin operations use method security with `hasRole('ADMIN')`.
 
@@ -30,6 +32,5 @@ JWT and datasource configuration must not contain committed production secrets. 
 
 ## Known gaps
 
-- There is no backend logout endpoint; clearing an HTTP-only cookie requires a server response.
 - Login returns the JWT in its JSON body as well as setting the cookie, despite the cookie-only client design.
 - Development configuration contains a static JWT secret and should be externalized and rotated in a separate security task.

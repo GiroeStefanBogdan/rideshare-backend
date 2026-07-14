@@ -5,12 +5,14 @@ import com.example.blablacar.dto.ride.HostedRideDTO;
 import com.example.blablacar.dto.ride.MyRidesResponseDTO;
 import com.example.blablacar.dto.ride.ReserveRideRequestDTO;
 import com.example.blablacar.dto.ride.RideDTO;
+import com.example.blablacar.dto.ride.RideDetailsDTO;
 import com.example.blablacar.dto.ride.RideDriverDTO;
 import com.example.blablacar.dto.ride.RideSearchRequestDTO;
 import com.example.blablacar.dto.ride.RideSearchResultDTO;
 import com.example.blablacar.dto.ride.RideStopBasicDTO;
 import com.example.blablacar.dto.ride.RideStopDetailsDTO;
 import com.example.blablacar.exception.ride.ForbiddenRideException;
+import com.example.blablacar.exception.ride.InvalidRidePricingException;
 import com.example.blablacar.exception.ride.InvalidRideScheduleException;
 import com.example.blablacar.exception.ride.InvalidRideStopException;
 import com.example.blablacar.exception.ride.NotEnoughSeatsException;
@@ -134,6 +136,16 @@ public class RideService {
     }
 
     @Transactional
+    public RideDetailsDTO getRideDetails(final long rideId) {
+        Ride ride = rideRepository.findById(rideId).orElseThrow(RideNotFoundException::new);
+        List<RideStopDetailsDTO> stops = ride.getRideStops().stream()
+                .sorted(Comparator.comparing(RideStop::getStopOrder))
+                .map(this::mapDetailedStop)
+                .toList();
+        return new RideDetailsDTO(ride.getId(), mapDriver(ride.getDriver()), ride.getSeatsTotal(), stops);
+    }
+
+    @Transactional
     public MyRidesResponseDTO getMyRides(final User user) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         OffsetDateTime monthAgo = now.minusMonths(1L);
@@ -201,6 +213,9 @@ public class RideService {
         }
         int fromPrice = fromStop.getPricePerSeat() != null ? fromStop.getPricePerSeat() : 0;
         int toPrice = toStop.getPricePerSeat() != null ? toStop.getPricePerSeat() : 0;
+        if (fromPrice < toPrice) {
+            throw new InvalidRidePricingException("The selected segment has invalid pricing");
+        }
         int totalPrice = (fromPrice - toPrice) * request.seats();
         Booking booking = new Booking(passenger, ride, fromStop, toStop, request.seats(), totalPrice);
         return bookingRepository.save(booking).getId();
@@ -243,11 +258,13 @@ public class RideService {
     }
 
     private RideStopBasicDTO mapBasicStop(final RideStop stop) {
-        return new RideStopBasicDTO(stop.getId(), getLocationName(stop), toIsoString(stop.getDepartsAt()));
+        return new RideStopBasicDTO(stop.getId(), getLocationName(stop), stop.getLocation().getName(),
+                toIsoString(stop.getDepartsAt()));
     }
 
     private RideStopDetailsDTO mapDetailedStop(final RideStop stop) {
         return new RideStopDetailsDTO(stop.getId(), stop.getStopOrder(), getLocationName(stop),
+                stop.getLocation().getName(),
                 toIsoString(stop.getDepartsAt()), stop.getAvailableSeats(), stop.getPricePerSeat());
     }
 

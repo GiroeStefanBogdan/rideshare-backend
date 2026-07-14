@@ -24,21 +24,23 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
 
     private static final String BASE_SEARCH_SQL = """
             SELECT r.id AS ride_id,
-                                                         u.id AS driver_id,
-                                                         u.name AS driver_name,
-                                                         ui.rating AS driver_rating,
-                                                         ui.reviews_count AS driver_reviews,
-                                                         ui.can_smoke AS driver_can_smoke,
-                                                         ui.pet_friendly AS driver_pet_friendly,
+                   u.id AS driver_id,
+                   u.name AS driver_name,
+                   ui.rating AS driver_rating,
+                   ui.reviews_count AS driver_reviews,
+                   ui.can_smoke AS driver_can_smoke,
+                   ui.pet_friendly AS driver_pet_friendly,
                    rs_from.id AS rs_from_id,
-                                                         rs_from.available_seats AS from_available_seats,
-                                                         rs_from.price_per_seat AS from_price,
-                                                         rs_from.departs_at AS from_departs_at,
-                                                         COALESCE(s_from.name, a_from.name) AS from_location_name,
+                   rs_from.available_seats AS from_available_seats,
+                   rs_from.price_per_seat AS from_price,
+                   rs_from.departs_at AS from_departs_at,
+                   COALESCE(s_from.name, a_from.name) AS from_location_name,
+                   a_from.name AS from_municipality_name,
                    rs_to.id AS rs_to_id,
-                                                         rs_to.price_per_seat AS to_price,
-                                                         rs_to.departs_at AS to_departs_at,
-                                                         COALESCE(s_to.name, a_to.name) AS to_location_name,
+                   rs_to.price_per_seat AS to_price,
+                   rs_to.departs_at AS to_departs_at,
+                   COALESCE(s_to.name, a_to.name) AS to_location_name,
+                   a_to.name AS to_municipality_name,
                    ST_DistanceSphere(
                        ST_MakePoint(
                            COALESCE(s_from.longitude, a_from.longitude),
@@ -54,7 +56,7 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
                        ST_MakePoint(:toLon, :toLat)
                    ) / 1000.0 AS dist_end_km
             FROM ride r
-                                                  JOIN users u ON r.driver_id = u.id
+            JOIN users u ON r.driver_id = u.id
             JOIN ride_stop rs_from ON r.id = rs_from.ride_id
             JOIN ride_stop rs_to ON r.id = rs_to.ride_id
             JOIN admin_units a_from ON rs_from.location_id = a_from.id
@@ -64,6 +66,7 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
             LEFT JOIN user_info ui ON r.driver_id = ui.user_id
             WHERE r.status = 'ACTIVE'
               AND rs_from.stop_order < rs_to.stop_order
+              AND rs_from.price_per_seat >= rs_to.price_per_seat
               AND rs_from.available_seats >= :seats
               AND r.departure_at >= :dayStart
               AND r.departure_at < :dayEnd
@@ -214,10 +217,12 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
         Number fromPrice = row.get("from_price", Number.class);
         OffsetDateTime fromDepartsAt = getOffsetDateTime(row, "from_departs_at");
         String fromLocationName = getString(row, "from_location_name");
+        String fromMunicipalityName = getString(row, "from_municipality_name");
 
         Number toPrice = row.get("to_price", Number.class);
         OffsetDateTime toDepartsAt = getOffsetDateTime(row, "to_departs_at");
         String toLocationName = getString(row, "to_location_name");
+        String toMunicipalityName = getString(row, "to_municipality_name");
 
         double distStartKm = row.get("dist_start_km", Number.class).doubleValue();
         double distEndKm = row.get("dist_end_km", Number.class).doubleValue();
@@ -238,12 +243,14 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
         RideStopBasicDTO startDTO = new RideStopBasicDTO(
                 rsFromId,
                 fromLocationName,
+                fromMunicipalityName,
                 fromDepartsAt != null ? fromDepartsAt.toString() : null
         );
 
         RideStopBasicDTO endDTO = new RideStopBasicDTO(
                 getLong(row, "rs_to_id"),
                 toLocationName,
+                toMunicipalityName,
                 toDepartsAt != null ? toDepartsAt.toString() : null
         );
 
