@@ -4,6 +4,7 @@ import com.example.blablacar.dto.auth.LoginRequest;
 import com.example.blablacar.dto.auth.LoginResponse;
 import com.example.blablacar.dto.user.UpdateUserRequest;
 import com.example.blablacar.dto.user.UserProfileDto;
+import com.example.blablacar.dto.user.UserPublicProfileDto;
 import com.example.blablacar.dto.user.UserRegistrationRequestDto;
 import com.example.blablacar.dto.user.UserResponseDto;
 import com.example.blablacar.model.enums.Role;
@@ -67,6 +68,15 @@ public class UserController {
                 .body(loginResponse);
     }
 
+    @PostMapping("/auth/logout")
+    public ResponseEntity<Void> logout() {
+        ResponseCookie cookie = ResponseCookie.from("token", "")
+                .httpOnly(true).secure(false)
+                .path("/").sameSite("Lax").maxAge(Duration.ZERO).build();
+
+        return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
+    }
+
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponseDto>> getAllUsers() {
@@ -80,6 +90,11 @@ public class UserController {
         User authenticatedUser = userPrincipal.getUser();
         UserProfileDto profile = userService.getProfile(authenticatedUser);
         return ResponseEntity.ok(profile);
+    }
+
+    @GetMapping("/users/{id}")
+    public ResponseEntity<UserPublicProfileDto> getPublicUserProfile(@PathVariable final long id) {
+        return ResponseEntity.ok(userService.getPublicProfile(id));
     }
 
     @PatchMapping("/users/me/password")

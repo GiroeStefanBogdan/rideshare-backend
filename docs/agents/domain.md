@@ -1,18 +1,37 @@
-# Domain Docs
+# Domain Guide
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+Use these terms consistently in code, API documentation, and plans.
 
-## Before exploring, read these
+## Users and roles
 
-- **`AGENTS.md`** at the repo root — the authoritative context document (project context, conventions, non-negotiables, scaffolding rules).
-- **`docs/ARCHITECTURE.md`** — layering, package structure, DTO/entity/exception conventions.
-- **`docs/CODESTYLE.md`** — Checkstyle rules, SpotBugs settings, general style rules.
-- **`docs/DATABASE.md`** — PostgreSQL, PostGIS, Flyway migration conventions.
+There is one user role for normal accounts: `ROLE_USER`. A normal user can be both a driver and a passenger. `ROLE_ADMIN` gates administrative user operations.
 
-These files together serve the role of `CONTEXT.md` + `docs/adr/` — they define the domain language, architectural decisions, and coding conventions.
+## Ride
 
-## Use the conventions
+A `Ride` is published by a driver and has an ordered list of `RideStop` records, total seats, departure time, price data, and a `Status`.
 
-When your output references a domain concept, layer boundary, or coding rule, use the terms as defined in `AGENTS.md` and the `docs/` files. Don't drift to synonyms or invent alternative names.
+`Status.ACTIVE` means the ride is available/current. `Status.INACTIVE` means it is no longer active, including a driver cancellation. There is no persisted `COMPLETED` status; past/upcoming is derived from `departureAt`.
 
-If a concept you need isn't covered by existing documentation, note it as a gap — `/grill-with-docs` can resolve it later.
+Ride creation accepts departures no more than one month in the future. Ride search returns only active rides with available capacity.
+
+## Ride stops and pricing
+
+`RideStop.stopOrder` defines route order. A booking is valid only when `fromStop.stopOrder < toStop.stopOrder`.
+
+Availability is tracked per stop segment. Reserving `n` seats decrements availability for every stop from the pickup stop through the stop before drop-off.
+
+The persisted stop prices are used as cumulative values; the booking fare is `(fromStop.pricePerSeat - toStop.pricePerSeat) * seats`.
+
+## Booking
+
+A `Booking` links one passenger to one ride and stores the selected pickup/drop-off stops, seats, total price, status, and creation time. Booking price is a snapshot of the amount calculated at reservation time.
+
+The current code allows a driver to reserve their own ride for test purposes. Re-enabling the guard is a future business-rule task.
+
+## Time windows
+
+For personal ride history, “past month” means the rolling interval `[now - 1 month, now)`, using the backend clock and the ride’s `departureAt`. Upcoming begins at `now`.
+
+## Known lifecycle gap
+
+The current ride deletion flow marks rides inactive but also deletes ride stops. Bookings reference those stops, so preserving cancelled booking itineraries requires a separate lifecycle fix before relying on inactive history data.

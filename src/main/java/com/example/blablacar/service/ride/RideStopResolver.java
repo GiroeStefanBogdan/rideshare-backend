@@ -1,15 +1,18 @@
 package com.example.blablacar.service.ride;
 
 import com.example.blablacar.dto.ride.RideStopDTO;
+import com.example.blablacar.exception.ride.InvalidRidePricingException;
+import com.example.blablacar.exception.ride.InvalidRideScheduleException;
 import com.example.blablacar.exception.ride.InvalidRideStopException;
 import com.example.blablacar.model.location.AdministrativeUnit;
 import com.example.blablacar.model.location.Street;
 import com.example.blablacar.model.ride.RideStop;
 import com.example.blablacar.repository.location.AdministrativeUnitRepository;
 import com.example.blablacar.repository.location.StreetRepository;
-import io.jsonwebtoken.lang.Collections;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,46 +31,75 @@ public class RideStopResolver {
         this.administrativeUnitRepository = administrativeUnitRepository;
     }
 
-    public List<RideStop> resolve(final List<RideStopDTO> rideStops, final byte seatsTotal) {
-        Map<Boolean, List<RideStopDTO>> collect = rideStops.stream()
-                .collect(Collectors.groupingBy(r -> "STREET".equals(r.type())));
+    public List<RideStop> resolve(final List<RideStopDTO> requestedStops, final byte seatsTotal) {
+        List<RideStopDTO> rideStops = requestedStops.stream()
+                .sorted(Comparator.comparing(RideStopDTO::stopOrder))
+                .toList();
+        validateOrderAndSchedule(rideStops);
+        validatePricing(rideStops);
 
-        List<RideStopDTO> streetsStops =
-                collect.getOrDefault(Boolean.TRUE, Collections.emptyList());
+        Map<Boolean, List<RideStopDTO>> groupedStops = rideStops.stream()
+                .collect(Collectors.groupingBy(stop -> "STREET".equals(stop.type())));
+        List<RideStopDTO> streetStops = groupedStops.getOrDefault(Boolean.TRUE, List.of());
         List<Street> foundStreets = streetRepository.findAllById(
-                streetsStops.stream().map(RideStopDTO::id).toList());
-        if (foundStreets.size() != streetsStops.size()) {
+                streetStops.stream().map(RideStopDTO::id).toList());
+        if (foundStreets.size() != streetStops.size()) {
             throw new InvalidRideStopException();
         }
 
-        Set<Long> adminUnitStops =
-                collect.getOrDefault(Boolean.FALSE, Collections.emptyList()).stream()
-                        .map(RideStopDTO::id)
-                        .collect(Collectors.toCollection(HashSet::new));
-        foundStreets.forEach(street -> adminUnitStops.add(street.getLocation().getId()));
+        Set<Long> administrativeUnitStopIds = groupedStops.getOrDefault(Boolean.FALSE, List.of()).stream()
+                .map(RideStopDTO::id)
+                .collect(Collectors.toCollection(HashSet::new));
+        foundStreets.forEach(street -> administrativeUnitStopIds.add(street.getLocation().getId()));
 
-        List<AdministrativeUnit> foundAdminUnits =
-                administrativeUnitRepository.findAllById(adminUnitStops);
-        if (foundAdminUnits.size() != adminUnitStops.size()) {
+        List<AdministrativeUnit> foundAdministrativeUnits = administrativeUnitRepository.findAllById(
+                administrativeUnitStopIds);
+        if (foundAdministrativeUnits.size() != administrativeUnitStopIds.size()) {
             throw new InvalidRideStopException();
         }
 
-        Map<Long, AdministrativeUnit> idToAdminUnit =
-                foundAdminUnits.stream().collect(Collectors.toMap(AdministrativeUnit::getId, a -> a));
-        Map<Long, Street> idToStreet =
-                foundStreets.stream().collect(Collectors.toMap(Street::getId, a -> a));
+        Map<Long, AdministrativeUnit> administrativeUnitsById = foundAdministrativeUnits.stream()
+                .collect(Collectors.toMap(AdministrativeUnit::getId, unit -> unit));
+        Map<Long, Street> streetsById = foundStreets.stream()
+                .collect(Collectors.toMap(Street::getId, street -> street));
 
         return rideStops.stream().map(stop -> {
-            Street stopStreet = null;
-            AdministrativeUnit stopAdminUnit;
+            Street street = null;
+            AdministrativeUnit administrativeUnit;
             if ("STREET".equals(stop.type())) {
-                stopStreet = idToStreet.get(stop.id());
-                stopAdminUnit = idToAdminUnit.get(stopStreet.getLocation().getId());
+                street = streetsById.get(stop.id());
+                administrativeUnit = administrativeUnitsById.get(street.getLocation().getId());
             } else {
-                stopAdminUnit = idToAdminUnit.get(stop.id());
+                administrativeUnit = administrativeUnitsById.get(stop.id());
             }
-            return new RideStop(stopAdminUnit, stopStreet, stop.stopOrder(), null, seatsTotal,
+            return new RideStop(administrativeUnit, street, stop.stopOrder(), stop.departsAt(), seatsTotal,
                     stop.price());
         }).toList();
+    }
+
+    private void validateOrderAndSchedule(final List<RideStopDTO> stops) {
+        for (int index = 0; index < stops.size(); index++) {
+            RideStopDTO stop = stops.get(index);
+            if (stop.stopOrder() != index + 1) {
+                throw new InvalidRideScheduleException("Stop order must be contiguous starting at 1");
+            }
+            if (index > 0) {
+                OffsetDateTime previousTime = stops.get(index - 1).departsAt();
+                if (!stop.departsAt().isAfter(previousTime)) {
+                    throw new InvalidRideScheduleException("Stop times must be strictly increasing");
+                }
+            }
+        }
+    }
+
+    private void validatePricing(final List<RideStopDTO> stops) {
+        for (int index = 1; index < stops.size(); index++) {
+            if (stops.get(index).price() >= stops.get(index - 1).price()) {
+                throw new InvalidRidePricingException("Stop prices must strictly decrease");
+            }
+        }
+        if (stops.getLast().price() != 0) {
+            throw new InvalidRidePricingException("The final stop price must be zero");
+        }
     }
 }

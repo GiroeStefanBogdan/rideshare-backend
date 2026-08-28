@@ -12,7 +12,7 @@ public record UserPublicProfileDto(
         Gender gender
 ) implements UserProfileDto {
 
-    public static UserPublicProfileDto from(User user){
+    public static UserPublicProfileDto from(final User user) {
         return new UserPublicProfileDto(
                 user.getId(),
                 user.getName(),

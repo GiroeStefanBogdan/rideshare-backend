@@ -1,7 +1,9 @@
 package com.example.blablacar.controller;
 
+import com.example.blablacar.dto.ride.MyRidesResponseDTO;
 import com.example.blablacar.dto.ride.ReserveRideRequestDTO;
 import com.example.blablacar.dto.ride.RideDTO;
+import com.example.blablacar.dto.ride.RideDetailsDTO;
 import com.example.blablacar.dto.ride.RideSearchRequestDTO;
 import com.example.blablacar.dto.ride.RideSearchResultDTO;
 import com.example.blablacar.model.user.UserPrincipal;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,6 +44,17 @@ public class RideController {
     public ResponseEntity<Long> saveNewRide(@AuthenticationPrincipal UserPrincipal userPrincipal,
                                             @RequestBody @Valid RideDTO rideRequest) {
         return ResponseEntity.ok(rideService.save(userPrincipal.getUser(), rideRequest));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<MyRidesResponseDTO> getMyRides(
+            @AuthenticationPrincipal final UserPrincipal userPrincipal) {
+        return ResponseEntity.ok(rideService.getMyRides(userPrincipal.getUser()));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<RideDetailsDTO> getRideDetails(@PathVariable final long id) {
+        return ResponseEntity.ok(rideService.getRideDetails(id));
     }
 
     @PatchMapping("{id}/seats")

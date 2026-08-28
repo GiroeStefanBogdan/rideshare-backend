@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.time.OffsetDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,8 +49,9 @@ class RideStopResolverTest {
 
     @Test
     void resolveShouldReturnRideStopsForValidAdminUnitStops() {
-        RideStopDTO stop1 = new RideStopDTO(1L, "ADMIN_UNIT", (byte) 1, (short) 10);
-        RideStopDTO stop2 = new RideStopDTO(2L, "ADMIN_UNIT", (byte) 2, (short) 5);
+        OffsetDateTime start = OffsetDateTime.now().plusDays(1L);
+        RideStopDTO stop1 = new RideStopDTO(1L, "ADMIN_UNIT", (byte) 1, (short) 10, start);
+        RideStopDTO stop2 = new RideStopDTO(2L, "ADMIN_UNIT", (byte) 2, (short) 0, start.plusHours(1L));
 
         AdministrativeUnit city2 = new AdministrativeUnit();
         city2.setId(2L);
@@ -68,7 +70,8 @@ class RideStopResolverTest {
 
     @Test
     void resolveShouldThrowWhenStreetNotFound() {
-        RideStopDTO stop = new RideStopDTO(999L, "STREET", (byte) 1, (short) 10);
+        RideStopDTO stop = new RideStopDTO(999L, "STREET", (byte) 1, (short) 0,
+                OffsetDateTime.now().plusDays(1L));
 
         when(streetRepository.findAllById(anyCollection())).thenReturn(List.of());
 
@@ -78,7 +81,8 @@ class RideStopResolverTest {
 
     @Test
     void resolveShouldThrowWhenAdminUnitNotFound() {
-        RideStopDTO stop = new RideStopDTO(999L, "ADMIN_UNIT", (byte) 1, (short) 10);
+        RideStopDTO stop = new RideStopDTO(999L, "ADMIN_UNIT", (byte) 1, (short) 0,
+                OffsetDateTime.now().plusDays(1L));
 
         when(streetRepository.findAllById(anyCollection())).thenReturn(List.of());
         when(adminUnitRepository.findAllById(anyCollection())).thenReturn(List.of());
@@ -89,7 +93,8 @@ class RideStopResolverTest {
 
     @Test
     void resolveShouldResolveStreetStopWithParentAdminUnit() {
-        RideStopDTO stop = new RideStopDTO(10L, "STREET", (byte) 1, (short) 10);
+        RideStopDTO stop = new RideStopDTO(10L, "STREET", (byte) 1, (short) 0,
+                OffsetDateTime.now().plusDays(1L));
 
         when(streetRepository.findAllById(anyCollection())).thenReturn(List.of(street));
         when(adminUnitRepository.findAllById(anyCollection())).thenReturn(List.of(city));
