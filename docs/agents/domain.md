@@ -1,37 +1,29 @@
-# Domain Guide
+# Domain Invariants & Business Logic
 
-Use these terms consistently in code, API documentation, and plans.
+## Users & Roles
+- `ROLE_USER`: Standard account; can act as both **driver** and **passenger**.
+- `ROLE_ADMIN`: Administrative operations only.
 
-## Users and roles
+## Ride & Lifecycle
+- **Status**: Only `ACTIVE` (available) or `INACTIVE` (cancelled/disabled).
+    - No persisted `COMPLETED` state; past vs. upcoming is dynamically derived from `departureAt` relative to `now`.
+- **Creation limit**: `departureAt` must be between `now` and `now + 1 month`.
+- **Search visibility**: Only `ACTIVE` rides with available segment capacity are returned.
 
-There is one user role for normal accounts: `ROLE_USER`. A normal user can be both a driver and a passenger. `ROLE_ADMIN` gates administrative user operations.
+## Stops, Segments & Pricing
+- **Route ordering**: Ordered contiguously by `RideStop.stopOrder`.
+    - Booking invariant: `fromStop.stopOrder < toStop.stopOrder`.
+- **Segment capacity**: Reserving `n` seats decrements capacity across each stop segment from `fromStop` up to (and including) `toStop - 1`.
+- **Fare formula**: Stop prices are cumulative and decrease to `0` at destination:
+  $$\text{Fare} = (\text{fromStop.pricePerSeat} - \text{toStop.pricePerSeat}) \times \text{seats}$$
 
-## Ride
+## Bookings
+- Persists passenger, ride, `fromStop`, `toStop`, `seats`, `status`, and a snapshot of `totalPrice` at reservation time.
+- **Testing quirk**: Drivers can currently reserve seats on their own hosted rides.
 
-A `Ride` is published by a driver and has an ordered list of `RideStop` records, total seats, departure time, price data, and a `Status`.
+## Time Windows (Personal History)
+- **Past Month**: Rolling interval `[now - 1 month, now)` based on `departureAt`.
+- **Upcoming**: `departureAt >= now`.
 
-`Status.ACTIVE` means the ride is available/current. `Status.INACTIVE` means it is no longer active, including a driver cancellation. There is no persisted `COMPLETED` status; past/upcoming is derived from `departureAt`.
-
-Ride creation accepts departures no more than one month in the future. Ride search returns only active rides with available capacity.
-
-## Ride stops and pricing
-
-`RideStop.stopOrder` defines route order. A booking is valid only when `fromStop.stopOrder < toStop.stopOrder`.
-
-Availability is tracked per stop segment. Reserving `n` seats decrements availability for every stop from the pickup stop through the stop before drop-off.
-
-The persisted stop prices are used as cumulative values; the booking fare is `(fromStop.pricePerSeat - toStop.pricePerSeat) * seats`.
-
-## Booking
-
-A `Booking` links one passenger to one ride and stores the selected pickup/drop-off stops, seats, total price, status, and creation time. Booking price is a snapshot of the amount calculated at reservation time.
-
-The current code allows a driver to reserve their own ride for test purposes. Re-enabling the guard is a future business-rule task.
-
-## Time windows
-
-For personal ride history, “past month” means the rolling interval `[now - 1 month, now)`, using the backend clock and the ride’s `departureAt`. Upcoming begins at `now`.
-
-## Known lifecycle gap
-
-The current ride deletion flow marks rides inactive but also deletes ride stops. Bookings reference those stops, so preserving cancelled booking itineraries requires a separate lifecycle fix before relying on inactive history data.
+## Known Gaps
+- Soft-deleting a ride (`INACTIVE`) currently also hard-deletes associated `RideStop` records, breaking historical itinerary references for past bookings.
