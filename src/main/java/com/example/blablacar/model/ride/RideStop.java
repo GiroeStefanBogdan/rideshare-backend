@@ -53,21 +53,21 @@ public class RideStop {
     @Column(name = "available_seats", nullable = false)
     private Byte availableSeats;
 
-    @Column(name = "price_per_seat")
-    private Short pricePerSeat;
+    @Column(name = "cumulative_price_per_seat", nullable = false)
+    private Short cumulativePricePerSeat;
 
     protected RideStop() {
     }
 
     public RideStop(final AdministrativeUnit administrativeUnit, final Street street, final Byte stopOrder,
                     final OffsetDateTime departsAt,
-                    final Byte availableSeats, final Short pricePerSeat) {
+                    final Byte availableSeats, final Short cumulativePricePerSeat) {
         this.administrativeUnit = administrativeUnit;
         this.street = street;
         this.stopOrder = stopOrder;
         this.departsAt = departsAt;
         this.availableSeats = availableSeats;
-        this.pricePerSeat = pricePerSeat;
+        this.cumulativePricePerSeat = cumulativePricePerSeat;
     }
 
     public Long getId() {
@@ -106,8 +106,8 @@ public class RideStop {
         return departsAt;
     }
 
-    public Short getPricePerSeat() {
-        return pricePerSeat;
+    public Short getCumulativePricePerSeat() {
+        return cumulativePricePerSeat;
     }
 
     public Byte getStopOrder() {

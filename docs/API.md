@@ -1,15 +1,9 @@
-# REST API
+# REST API Contract
 
-This is the backend wire-contract reference. It describes current controller behavior, not the separate frontend repository’s assumptions. Paths are relative to the backend origin (`http://localhost:8080` in development).
+Base URL: `http://localhost:8080`. Auth: HTTP-only `token` cookie (`credentials: 'include'`).
 
-## Authentication model
-
-Requests use the HTTP-only `token` cookie. Protected requests must include cookies. Public routes are `/login`, `/register`, `/auth/logout`, `/error`, `/dashboard`, `/locations/search`, `/rides/search`, `GET /rides/{id}`, and `GET /users/{id}`; `OPTIONS /**` is allowed for CORS preflight. All other routes require authentication. Admin routes additionally require `ROLE_ADMIN`.
-
-## Common errors
-
-Validation failures return HTTP 400 with `ErrorResponseDto`:
-
+## Error Format
+Failures return `ErrorResponseDto`:
 ```json
 {
   "timestamp": "2026-07-14T12:00:00",
@@ -18,93 +12,86 @@ Validation failures return HTTP 400 with `ErrorResponseDto`:
   "message": "field: reason"
 }
 ```
+Standard errors return 400, 404, or 409. Scheduling/pricing domain failures return **422 Unprocessable Entity**.
 
-Known domain exceptions use 400, 404, 409, or 422 according to the exception and handler. Error shapes are not fully uniform for every Spring Security or unhandled exception.
+---
 
-## Dashboard
+## Endpoints
 
-| Method | Path | Auth | Response |
-| --- | --- | --- | --- |
-| GET | `/dashboard` | Public | `text/plain` username when authenticated; empty/null body otherwise |
+### Dashboard & Locations
+| Method | Path | Auth | Request | Response | Notes |
+|---|---|---|---|---|---|
+| `GET` | `/dashboard` | Public | — | 200 String | Username if authenticated; empty/null otherwise |
+| `GET` | `/locations/search?q={query}` | Public | — | 200 `LocationResultDTO[]` | Returns `[]` if query < 2 trimmed chars |
 
-## Authentication and users
+### Auth & Users
+| Method | Path | Auth | Request Body | Response |
+|---|---|---|---|---|
+| `POST` | `/register` | Public | `UserRegistrationRequestDto` | 201 `UserResponseDto` |
+| `POST` | `/login` | Public | `LoginRequest` | 200 `LoginResponse` (sets `token` cookie) |
+| `POST` | `/auth/logout` | Public | — | 204 (clears `token` cookie) |
+| `GET` | `/users` | Admin | — | 200 `UserResponseDto[]` |
+| `GET` | `/users/{id}` | Public | — | 200 `UserPublicProfileDto` |
+| `GET` | `/users/me` | User | — | 200 `UserProfileDto` |
+| `PATCH` | `/users/me` | User | `UpdateUserRequest` | 200 `UserResponseDto` |
+| `PATCH` | `/users/me/password` | User | `LoginRequest` (uses password) | 204 |
+| `DELETE`| `/users/me` | User | — | 204 (clears `token` cookie) |
+| `PATCH` | `/admin/users/{id}/role` | Admin | JSON string `Role` | 200 `UserResponseDto` |
+| `DELETE`| `/admin/users/{id}` | Admin | — | 204 |
 
-| Method | Path | Auth | Request | Success |
-| --- | --- | --- | --- | --- |
-| POST | `/register` | Public | `UserRegistrationRequestDto` | 201, `UserResponseDto` |
-| POST | `/login` | Public | `LoginRequest` | 200, `LoginResponse`; sets `token` cookie |
-| POST | `/auth/logout` | Public | — | 204; clears `token` cookie |
-| GET | `/users` | Admin | — | 200, `UserResponseDto[]` |
-| GET | `/users/{id}` | Public | — | 200, `UserPublicProfileDto` |
-| GET | `/users/me` | User | — | 200, `UserProfileDto` |
-| PATCH | `/users/me` | User | `UpdateUserRequest` | 200, `UserResponseDto` |
-| PATCH | `/users/me/password` | User | `LoginRequest` (password is used) | 204 |
-| DELETE | `/users/me` | User | — | 204 |
-| PATCH | `/admin/users/{id}/role` | Admin | JSON `Role` string | 200, `UserResponseDto` |
-| DELETE | `/admin/users/{id}` | Admin | — | 204 |
+### User Cars
+| Method | Path | Auth | Request Body | Response |
+|---|---|---|---|---|
+| `POST` | `/users/me/cars` | User | `UserCarRequest` | 201 `UserCarResponse` |
+| `GET` | `/users/me/cars` | User | — | 200 `UserCarResponse[]` |
+| `PATCH` | `/users/me/cars/{carId}` | User | `UpdateUserCarRequest` | 200 `UserCarResponse` |
+| `DELETE`| `/users/me/cars/{carId}` | User | — | 204 |
 
-`UserResponseDto`: `id`, `name`, `email`, `role`, `phoneNumber`, `birthday`, `gender`.
+### Rides & Bookings
+| Method | Path | Auth | Request Body | Response | Notes |
+|---|---|---|---|---|---|
+| `POST` | `/rides` | User | `RideDTO` | 201 `{ "rideId": number }` | |
+| `GET` | `/rides/{id}` | Public | — | 200 `RideDetailsDTO` | |
+| `PATCH` | `/rides/{id}/seats` | Owner | Raw JSON integer/byte | 204 | Body is a raw number, not an object |
+| `DELETE`| `/rides/{id}` | Owner | — | 204 | Sets ride status to `INACTIVE` |
+| `POST` | `/rides/search` | Public | `RideSearchRequestDTO` | 200 `RideSearchResultDTO[]` | |
+| `POST` | `/rides/{id}/reserve` | User | `ReserveRideRequestDTO` | 201 `{ "bookingId": number }` | |
+| `GET` | `/rides/me` | User | — | 200 `MyRidesResponseDTO` | |
 
-`UserPublicProfileDto`: `id`, `name`, `birthday`, `gender`.
+---
 
-`UserRegistrationRequestDto`: `name`, `email`, `password`, `birthday`, `phoneNumber`, `gender`.
+## DTO Models & Fields
 
-`UpdateUserRequest` fields are nullable partial updates: `name`, `email`, `phoneNumber`, `birthday`, `gender`.
+- **UserRegistrationRequestDto**: `name`, `email`, `password`, `birthday`, `phoneNumber`, `gender`
+- **LoginRequest**: `email`, `password`, `rememberMe`
+- **UserResponseDto**: `id`, `name`, `email`, `role`, `phoneNumber`, `birthday`, `gender`
+- **UserPublicProfileDto**: `id`, `name`, `birthday`, `gender`
+- **UpdateUserRequest** (nullable partials): `name`, `email`, `phoneNumber`, `birthday`, `gender`
+- **UserCarRequest** / **UpdateUserCarRequest**: `brand`, `model`, `color`, `year`, `licensePlate`, `numberOfSeats` (`UserCarResponse` adds `id`, `userId`)
+- **LocationResultDTO**: `id`, `type`, `name`, `fullName`, `latitude`, `longitude`, `population`
+- **RideDTO**: `seatsTotal` (1–4), optional `carId`, and 2–7
+  `rideStops: [{ id, type, stopOrder, cumulativePricePerSeat, departsAt }]`. Locations are distinct,
+  times are at least one minute apart, the origin price is `0`, and later cumulative prices strictly increase.
+- **RideSearchRequestDTO**:
+    - *Required*: `fromId`, `fromType`, `toId`, `toType`, `date`, `seats`
+    - *Optional*: `maxDistanceStart`, `maxDistanceEnd`, `maxPrice`, `timeWindow`, `smokingAllowed`, `petFriendly`
+- **RideSearchResultDTO**: `rideId`, `driver` (`RideDriverDTO`), `seatsAvailable`, `totalPrice`, `startStop` (`RideStopBasicDTO`), `endStop` (`RideStopBasicDTO`), `distanceToStartKm`, `distanceToEndKm`
+- **RideDetailsDTO**: `rideId`, `driver`, `seatsTotal`, optional public `vehicle`,
+  `rideStops: [{ locationName, municipalityName, departsAt, availableSeats, cumulativePricePerSeat }]`
+- **ReserveRideRequestDTO**: `fromStopId`, `toStopId`, `seats`
+- **MyRidesResponseDTO**:
+    - `upcomingBookings` / `pastBookings`: `[{ bookingId, rideId, status, driver, seats, totalPrice, fromStop, toStop }]`
+    - `upcomingHostedRides` / `pastHostedRides`: `[{ rideId, status, seatsTotal, rideStops }]`
 
-`LoginRequest`: `email`, `password`, `rememberMe`. The current login response includes both a JWT `token` field and a `user` object; the client is intended to use the cookie.
-
-## User cars
-
-| Method | Path | Auth | Request | Success |
-| --- | --- | --- | --- | --- |
-| POST | `/users/me/cars` | User | `UserCarRequest` | 201, `UserCarResponse` |
-| GET | `/users/me/cars` | User | — | 200, `UserCarResponse[]` |
-| PATCH | `/users/me/cars/{carId}` | User | `UpdateUserCarRequest` | 200, `UserCarResponse` |
-| DELETE | `/users/me/cars/{carId}` | User | — | 204 |
-
-Car request fields: `brand`, `model`, `color`, `year`, `licensePlate`, `numberOfSeats`. The response adds `id` and `userId`.
-
-## Locations
-
-| Method | Path | Auth | Request | Success |
-| --- | --- | --- | --- | --- |
-| GET | `/locations/search?q={query}` | Public | query string `q` | 200, `LocationResultDTO[]` |
-
-Queries shorter than two trimmed characters return an empty array. A location result contains `id`, `type`, `name`, `fullName`, `latitude`, `longitude`, and `population`.
-
-## Rides and bookings
-
-| Method | Path | Auth | Request | Success |
-| --- | --- | --- | --- | --- |
-| POST | `/rides` | User | `RideDTO` | 200, numeric ride ID |
-| GET | `/rides/{id}` | Public | — | 200, `RideDetailsDTO` |
-| PATCH | `/rides/{id}/seats` | User/owner | raw JSON byte seat count | 204 |
-| DELETE | `/rides/{id}` | User/owner | — | 204; marks ride inactive |
-| POST | `/rides/search` | Public | `RideSearchRequestDTO` | 200, `RideSearchResultDTO[]` |
-| POST | `/rides/{id}/reserve` | User | `ReserveRideRequestDTO` | 200, numeric booking ID |
-| GET | `/rides/me` | User | — | 200, `MyRidesResponseDTO` |
-
-`RideDTO`: `rideStops` and `seatsTotal`. Each stop contains `id`, `type`, `stopOrder`, `price`, and `departsAt`. Stop order is contiguous, times strictly increase, prices strictly decrease, and the final price is zero.
-
-`RideSearchRequestDTO` requires `fromId`, `fromType`, `toId`, `toType`, `date`, and `seats`; optional filters are `maxDistanceStart`, `maxDistanceEnd`, `maxPrice`, `timeWindow`, `smokingAllowed`, and `petFriendly`.
-
-`RideSearchResultDTO`: `rideId`, `driver`, `seatsAvailable`, `totalPrice`, `startStop`, `endStop`, `distanceToStartKm`, and `distanceToEndKm`. `driver` is `RideDriverDTO`; stops are `RideStopBasicDTO`, including `locationName` and `municipalityName`.
-
-`RideDetailsDTO`: `rideId`, `driver`, `seatsTotal`, and ordered `rideStops`. Detailed stops include `locationName`, `municipalityName`, departure time, available seats, and per-seat price.
-
-`ReserveRideRequestDTO`: `fromStopId`, `toStopId`, and `seats`. The current response is a bare JSON number, not `{ "id": number }`.
-
-`MyRidesResponseDTO` contains `upcomingBookings`, `pastBookings`, `upcomingHostedRides`, and `pastHostedRides`. Booking items contain `bookingId`, `rideId`, `status`, `driver`, `seats`, `totalPrice`, `fromStop`, and `toStop`. Hosted items contain `rideId`, `status`, `seatsTotal`, and ordered `rideStops`.
+---
 
 ## Enums
+- **Role**: `ROLE_USER`, `ROLE_ADMIN`
+- **Gender**: `MALE`, `FEMALE`
+- **AuthProvider**: `LOCAL`, `GOOGLE`
+- **Status**: `ACTIVE`, `INACTIVE`
+- **TimeWindow**: `BEFORE_8`, `8_12`, `12_18`, `AFTER_18`
 
-- `Role`: `ROLE_USER`, `ROLE_ADMIN`
-- `Gender`: `MALE`, `FEMALE`
-- `AuthProvider`: `LOCAL`, `GOOGLE`
-- `Status`: `ACTIVE`, `INACTIVE`
-- Search time windows: `BEFORE_8`, `8_12`, `12_18`, `AFTER_18`
-
-## Known contract gaps
-
-- The frontend repository still documents review routes that do not currently exist here.
-- Schedule and pricing failures return 422 with the standard error response.
+## Contract Gotchas & Gaps
+- `POST /login` returns `{ token, user }` in the response body despite the client being cookie-only.
+- Review endpoints referenced in frontend code do not exist in the backend.

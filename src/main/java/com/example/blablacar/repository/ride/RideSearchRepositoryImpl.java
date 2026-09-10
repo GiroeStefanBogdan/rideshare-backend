@@ -9,8 +9,10 @@ import jakarta.persistence.Query;
 import jakarta.persistence.Tuple;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,12 +34,12 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
                    ui.pet_friendly AS driver_pet_friendly,
                    rs_from.id AS rs_from_id,
                    rs_from.available_seats AS from_available_seats,
-                   rs_from.price_per_seat AS from_price,
+                   rs_from.cumulative_price_per_seat AS from_price,
                    rs_from.departs_at AS from_departs_at,
                    COALESCE(s_from.name, a_from.name) AS from_location_name,
                    a_from.name AS from_municipality_name,
                    rs_to.id AS rs_to_id,
-                   rs_to.price_per_seat AS to_price,
+                   rs_to.cumulative_price_per_seat AS to_price,
                    rs_to.departs_at AS to_departs_at,
                    COALESCE(s_to.name, a_to.name) AS to_location_name,
                    a_to.name AS to_municipality_name,
@@ -66,8 +68,15 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
             LEFT JOIN user_info ui ON r.driver_id = ui.user_id
             WHERE r.status = 'ACTIVE'
               AND rs_from.stop_order < rs_to.stop_order
-              AND rs_from.price_per_seat >= rs_to.price_per_seat
-              AND rs_from.available_seats >= :seats
+              AND rs_to.cumulative_price_per_seat > rs_from.cumulative_price_per_seat
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM ride_stop rs_segment
+                  WHERE rs_segment.ride_id = r.id
+                    AND rs_segment.stop_order >= rs_from.stop_order
+                    AND rs_segment.stop_order < rs_to.stop_order
+                    AND rs_segment.available_seats < :seats
+              )
               AND r.departure_at >= :dayStart
               AND r.departure_at < :dayEnd
             """;
@@ -89,7 +98,7 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
             """;
 
     private static final String MAX_PRICE_FILTER = """
-              AND (rs_from.price_per_seat - rs_to.price_per_seat) <= :maxPrice
+              AND (rs_to.cumulative_price_per_seat - rs_from.cumulative_price_per_seat) <= :maxPrice
             """;
 
     private static final String ORDER_SQL = """
@@ -257,7 +266,7 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
         int totalPrice = 0;
         if (fromPrice != null) {
             int endPrice = toPrice != null ? toPrice.intValue() : 0;
-            totalPrice = fromPrice.intValue() - endPrice;
+            totalPrice = endPrice - fromPrice.intValue();
         }
 
         return new RideSearchResultDTO(
@@ -296,6 +305,14 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
     }
 
     private OffsetDateTime getOffsetDateTime(final Tuple row, final String alias) {
-        return row.get(alias, OffsetDateTime.class);
+        Object value = row.get(alias);
+        return switch (value) {
+            case null -> null;
+            case OffsetDateTime offsetDateTime -> offsetDateTime;
+            case Instant instant -> instant.atOffset(ZoneOffset.UTC);
+            default -> throw new IllegalArgumentException(
+                    "Unsupported timestamp type for " + alias + ": " + value.getClass().getName()
+            );
+        };
     }
 }

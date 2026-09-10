@@ -7,6 +7,6 @@ public record RideStopDetailsDTO(
         String municipalityName,
         String departsAt,
         Byte availableSeats,
-        Short pricePerSeat
+        Short cumulativePricePerSeat
 ) {
 }
