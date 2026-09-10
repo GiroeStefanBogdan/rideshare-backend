@@ -15,6 +15,13 @@ import java.util.List;
 @Repository
 public interface AdministrativeUnitRepository extends JpaRepository<AdministrativeUnit, Long> {
 
-    @Query("SELECT a FROM AdministrativeUnit a LEFT JOIN FETCH a.parent WHERE lower(function('unaccent', a.name)) LIKE lower(concat('%', function('unaccent', :name), '%')) ORDER BY a.population DESC NULLS LAST")
+    @Query(value = """
+            SELECT a.* FROM admin_units a
+            WHERE a.active = TRUE
+              AND a.type <> 'COUNTY'
+              AND a.name_norm LIKE CONCAT('%', LOWER(unaccent(:name)), '%')
+            ORDER BY a.population DESC NULLS LAST
+            LIMIT 10
+            """, nativeQuery = true)
     List<AdministrativeUnit> findTop10ByNameContainingIgnoreCaseOrderByPopulationDesc(@Param("name") String name);
 }
