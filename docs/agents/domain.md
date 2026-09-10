@@ -14,8 +14,9 @@
 - **Route ordering**: Ordered contiguously by `RideStop.stopOrder`.
     - Booking invariant: `fromStop.stopOrder < toStop.stopOrder`.
 - **Segment capacity**: Reserving `n` seats decrements capacity across each stop segment from `fromStop` up to (and including) `toStop - 1`.
-- **Fare formula**: Stop prices are cumulative and decrease to `0` at destination:
-  $$\text{Fare} = (\text{fromStop.pricePerSeat} - \text{toStop.pricePerSeat}) \times \text{seats}$$
+- **Fare formula**: Stop prices are cumulative from the origin, begin at `0`, and strictly increase:
+  $$\text{Fare} = (\text{toStop.cumulativePricePerSeat} -
+  \text{fromStop.cumulativePricePerSeat}) \times \text{seats}$$
 
 ## Bookings
 - Persists passenger, ride, `fromStop`, `toStop`, `seats`, `status`, and a snapshot of `totalPrice` at reservation time.
@@ -25,5 +26,6 @@
 - **Past Month**: Rolling interval `[now - 1 month, now)` based on `departureAt`.
 - **Upcoming**: `departureAt >= now`.
 
-## Known Gaps
-- Soft-deleting a ride (`INACTIVE`) currently also hard-deletes associated `RideStop` records, breaking historical itinerary references for past bookings.
+## Vehicles
+- A ride may reference one car owned by its driver. The association is optional and is cleared if that car is deleted.
+- Public ride details expose brand, model, color, and year, but not license plate or registered seat count.

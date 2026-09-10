@@ -9,4 +9,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ResponseStatus(value = HttpStatus.BAD_REQUEST, reason = "The specified ride stop id doesn't exist")
 public class InvalidRideStopException extends RuntimeException {
+
+    public InvalidRideStopException() {
+        super("The specified Ride Stop is invalid");
+    }
+
+    public InvalidRideStopException(final String message) {
+        super(message);
+    }
 }

@@ -1,6 +1,7 @@
 package com.example.blablacar.service.ride;
 
 import com.example.blablacar.dto.ride.RideStopDTO;
+import com.example.blablacar.exception.ride.InvalidRidePricingException;
 import com.example.blablacar.exception.ride.InvalidRideStopException;
 import com.example.blablacar.model.location.AdministrativeUnit;
 import com.example.blablacar.model.location.Street;
@@ -12,8 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -50,8 +51,8 @@ class RideStopResolverTest {
     @Test
     void resolveShouldReturnRideStopsForValidAdminUnitStops() {
         OffsetDateTime start = OffsetDateTime.now().plusDays(1L);
-        RideStopDTO stop1 = new RideStopDTO(1L, "ADMIN_UNIT", (byte) 1, (short) 10, start);
-        RideStopDTO stop2 = new RideStopDTO(2L, "ADMIN_UNIT", (byte) 2, (short) 0, start.plusHours(1L));
+        RideStopDTO stop1 = new RideStopDTO(1L, "ADMIN_UNIT", (byte) 1, (short) 0, start);
+        RideStopDTO stop2 = new RideStopDTO(2L, "ADMIN_UNIT", (byte) 2, (short) 10, start.plusHours(1L));
 
         AdministrativeUnit city2 = new AdministrativeUnit();
         city2.setId(2L);
@@ -104,5 +105,16 @@ class RideStopResolverTest {
         assertEquals(1, result.size());
         assertEquals(city, result.getFirst().getLocation());
         assertEquals(street, result.getFirst().getStreet());
+    }
+
+    @Test
+    void resolveShouldRejectNonIncreasingCumulativePrices() {
+        OffsetDateTime start = OffsetDateTime.now().plusDays(1L);
+        RideStopDTO origin = new RideStopDTO(1L, "ADMIN_UNIT", (byte) 1, (short) 0, start);
+        RideStopDTO destination = new RideStopDTO(2L, "ADMIN_UNIT", (byte) 2, (short) 0,
+                start.plusHours(1L));
+
+        assertThrows(InvalidRidePricingException.class,
+                () -> resolver.resolve(List.of(origin, destination), (byte) 3));
     }
 }

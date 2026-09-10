@@ -13,6 +13,6 @@ import java.time.OffsetDateTime;
 public record RideStopDTO(@Positive Long id,
                           @NotNull String type,
                           @Positive Byte stopOrder,
-                          @PositiveOrZero Short price,
+                          @PositiveOrZero Short cumulativePricePerSeat,
                           @NotNull OffsetDateTime departsAt) {
 }

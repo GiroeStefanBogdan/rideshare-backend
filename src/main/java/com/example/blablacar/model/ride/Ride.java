@@ -3,6 +3,7 @@ package com.example.blablacar.model.ride;
 import com.example.blablacar.model.enums.Status;
 import com.example.blablacar.model.location.AdministrativeUnit;
 import com.example.blablacar.model.user.User;
+import com.example.blablacar.model.user.UserCar;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,11 +45,15 @@ public class Ride {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "ride", cascade = CascadeType.ALL)
     private List<RideStop> rideStops;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "car_id")
+    private UserCar car;
+
     @Column(name = "seats_total", nullable = false)
     private Byte seatsTotal;
 
-    @Column(name = "price_per_seat")
-    private Short pricePerSeat;
+    @Column(name = "total_price_per_seat", nullable = false)
+    private Short totalPricePerSeat;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -66,15 +71,16 @@ public class Ride {
 
     public Ride(final User driver, final AdministrativeUnit originAdministrativeUnit,
                 final AdministrativeUnit destAdministrativeUnit,
-                final List<RideStop> rideStops, final Byte seatsTotal, final Short pricePerSeat,
-                final OffsetDateTime departureAt) {
+                final List<RideStop> rideStops, final Byte seatsTotal, final Short totalPricePerSeat,
+                final OffsetDateTime departureAt, final UserCar car) {
         this.driver = driver;
         this.originAdministrativeUnit = originAdministrativeUnit;
         this.destAdministrativeUnit = destAdministrativeUnit;
         this.rideStops = rideStops;
         this.seatsTotal = seatsTotal;
-        this.pricePerSeat = pricePerSeat;
+        this.totalPricePerSeat = totalPricePerSeat;
         this.departureAt = departureAt;
+        this.car = car;
         this.createdAt = OffsetDateTime.now();
     }
 
@@ -107,8 +113,12 @@ public class Ride {
         return rideStops;
     }
 
-    public Short getPricePerSeat() {
-        return pricePerSeat;
+    public Short getTotalPricePerSeat() {
+        return totalPricePerSeat;
+    }
+
+    public UserCar getCar() {
+        return car;
     }
 
     public OffsetDateTime getDepartureAt() {

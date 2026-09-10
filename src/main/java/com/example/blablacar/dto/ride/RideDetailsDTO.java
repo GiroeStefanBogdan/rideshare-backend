@@ -6,6 +6,7 @@ public record RideDetailsDTO(
         long rideId,
         RideDriverDTO driver,
         Byte seatsTotal,
+        RideVehicleDTO vehicle,
         List<RideStopDetailsDTO> rideStops
 ) {
 }

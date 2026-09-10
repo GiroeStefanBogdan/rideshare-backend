@@ -35,7 +35,7 @@ Standard errors return 400, 404, or 409. Scheduling/pricing domain failures retu
 | `GET` | `/users/me` | User | — | 200 `UserProfileDto` |
 | `PATCH` | `/users/me` | User | `UpdateUserRequest` | 200 `UserResponseDto` |
 | `PATCH` | `/users/me/password` | User | `LoginRequest` (uses password) | 204 |
-| `DELETE`| `/users/me` | User | — | 204 |
+| `DELETE`| `/users/me` | User | — | 204 (clears `token` cookie) |
 | `PATCH` | `/admin/users/{id}/role` | Admin | JSON string `Role` | 200 `UserResponseDto` |
 | `DELETE`| `/admin/users/{id}` | Admin | — | 204 |
 
@@ -50,12 +50,12 @@ Standard errors return 400, 404, or 409. Scheduling/pricing domain failures retu
 ### Rides & Bookings
 | Method | Path | Auth | Request Body | Response | Notes |
 |---|---|---|---|---|---|
-| `POST` | `/rides` | User | `RideDTO` | 200 `Long` (ride ID) | |
+| `POST` | `/rides` | User | `RideDTO` | 201 `{ "rideId": number }` | |
 | `GET` | `/rides/{id}` | Public | — | 200 `RideDetailsDTO` | |
 | `PATCH` | `/rides/{id}/seats` | Owner | Raw JSON integer/byte | 204 | Body is a raw number, not an object |
 | `DELETE`| `/rides/{id}` | Owner | — | 204 | Sets ride status to `INACTIVE` |
 | `POST` | `/rides/search` | Public | `RideSearchRequestDTO` | 200 `RideSearchResultDTO[]` | |
-| `POST` | `/rides/{id}/reserve` | User | `ReserveRideRequestDTO` | 200 `Long` (booking ID) | Returns a bare numeric ID |
+| `POST` | `/rides/{id}/reserve` | User | `ReserveRideRequestDTO` | 201 `{ "bookingId": number }` | |
 | `GET` | `/rides/me` | User | — | 200 `MyRidesResponseDTO` | |
 
 ---
@@ -69,12 +69,15 @@ Standard errors return 400, 404, or 409. Scheduling/pricing domain failures retu
 - **UpdateUserRequest** (nullable partials): `name`, `email`, `phoneNumber`, `birthday`, `gender`
 - **UserCarRequest** / **UpdateUserCarRequest**: `brand`, `model`, `color`, `year`, `licensePlate`, `numberOfSeats` (`UserCarResponse` adds `id`, `userId`)
 - **LocationResultDTO**: `id`, `type`, `name`, `fullName`, `latitude`, `longitude`, `population`
-- **RideDTO**: `seatsTotal`, `rideStops: [{ id, type, stopOrder, price, departsAt }]` (stop order contiguous, times strictly increasing, prices strictly decreasing, final stop price is `0`)
+- **RideDTO**: `seatsTotal` (1–4), optional `carId`, and 2–7
+  `rideStops: [{ id, type, stopOrder, cumulativePricePerSeat, departsAt }]`. Locations are distinct,
+  times are at least one minute apart, the origin price is `0`, and later cumulative prices strictly increase.
 - **RideSearchRequestDTO**:
     - *Required*: `fromId`, `fromType`, `toId`, `toType`, `date`, `seats`
     - *Optional*: `maxDistanceStart`, `maxDistanceEnd`, `maxPrice`, `timeWindow`, `smokingAllowed`, `petFriendly`
 - **RideSearchResultDTO**: `rideId`, `driver` (`RideDriverDTO`), `seatsAvailable`, `totalPrice`, `startStop` (`RideStopBasicDTO`), `endStop` (`RideStopBasicDTO`), `distanceToStartKm`, `distanceToEndKm`
-- **RideDetailsDTO**: `rideId`, `driver`, `seatsTotal`, `rideStops: [{ locationName, municipalityName, departsAt, availableSeats, pricePerSeat }]`
+- **RideDetailsDTO**: `rideId`, `driver`, `seatsTotal`, optional public `vehicle`,
+  `rideStops: [{ locationName, municipalityName, departsAt, availableSeats, cumulativePricePerSeat }]`
 - **ReserveRideRequestDTO**: `fromStopId`, `toStopId`, `seats`
 - **MyRidesResponseDTO**:
     - `upcomingBookings` / `pastBookings`: `[{ bookingId, rideId, status, driver, seats, totalPrice, fromStop, toStop }]`
