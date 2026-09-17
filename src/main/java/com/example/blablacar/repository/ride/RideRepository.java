@@ -32,23 +32,11 @@ public interface RideRepository extends JpaRepository<Ride, Long>, RideSearchRep
             join fetch stop.administrativeUnit
             left join fetch stop.street
             where r.driver.id = :driverId
-              and r.departureAt >= :from
+              and exists (select finalStop.id from RideStop finalStop
+                  where finalStop.ride = r
+                    and finalStop.stopOrder = (select max(s.stopOrder) from RideStop s where s.ride = r)
+                    and (finalStop.departsAt is null or finalStop.departsAt >= :from))
             order by r.departureAt asc
             """)
-    List<Ride> findUpcomingByDriverId(final long driverId, final OffsetDateTime from);
-
-    @Query("""
-            select distinct r from Ride r
-            join fetch r.driver d
-            left join fetch d.userInfo
-            join fetch r.rideStops stop
-            join fetch stop.administrativeUnit
-            left join fetch stop.street
-            where r.driver.id = :driverId
-              and r.departureAt >= :from
-              and r.departureAt < :to
-            order by r.departureAt desc
-            """)
-    List<Ride> findPastByDriverId(final long driverId, final OffsetDateTime from,
-                                  final OffsetDateTime to);
+    List<Ride> findRecentByDriverId(final long driverId, final OffsetDateTime from);
 }

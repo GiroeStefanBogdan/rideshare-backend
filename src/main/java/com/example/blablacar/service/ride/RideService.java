@@ -12,6 +12,8 @@ import com.example.blablacar.dto.ride.RideSearchResultDTO;
 import com.example.blablacar.dto.ride.RideStopBasicDTO;
 import com.example.blablacar.dto.ride.RideStopDetailsDTO;
 import com.example.blablacar.dto.ride.RideVehicleDTO;
+import com.example.blablacar.exception.ride.BookingCancellationExpiredException;
+import com.example.blablacar.exception.ride.BookingNotFoundException;
 import com.example.blablacar.exception.ride.ForbiddenRideException;
 import com.example.blablacar.exception.ride.InvalidRidePricingException;
 import com.example.blablacar.exception.ride.InvalidRideScheduleException;
@@ -129,8 +131,44 @@ public class RideService {
         }
         //TODO Add notification to users in the future.
         // Preserve stops and bookings so cancelled rides remain visible in personal history.
-        ride.setStatus(Status.INACTIVE);
+        ride.setStatus(Status.CANCELLED);
         rideRepository.save(ride);
+    }
+
+    /**
+     * Cancels one booking of the given passenger, restoring exactly the seats
+     * that this booking reserved on its own segments. Repeated cancellation is
+     * a harmless no-op: seats are never released twice. A cancelled or inactive
+     * ride already released nothing for this booking, so it is also a no-op.
+     */
+    @Transactional
+    public void cancelBooking(final User passenger, final long bookingId) {
+        // Read only the scalar ID before locking: do not cache stale booking/ride entities.
+        long rideId = bookingRepository.findRideIdByIdAndPassengerId(bookingId, passenger.getId())
+                .orElseThrow(BookingNotFoundException::new);
+        Ride ride = rideRepository.findByIdForUpdate(rideId).orElseThrow(BookingNotFoundException::new);
+        Booking booking = bookingRepository.findByIdForUpdate(bookingId)
+                .orElseThrow(BookingNotFoundException::new);
+        if (booking.getPassenger().getId() != passenger.getId()) {
+            throw new ForbiddenRideException();
+        }
+        if (booking.getStatus() != Status.ACTIVE || ride.getStatus() != Status.ACTIVE) {
+            return;
+        }
+        RideStop fromStop = booking.getFromStop();
+        if (fromStop.getDepartsAt() == null || !fromStop.getDepartsAt()
+                .isAfter(OffsetDateTime.now(clock))) {
+            throw new BookingCancellationExpiredException();
+        }
+        List<RideStop> rideStops = rideStopRepository.findAllByRide(ride);
+        byte fromOrder = fromStop.getStopOrder();
+        byte toOrder = booking.getToStop().getStopOrder();
+        byte seats = booking.getSeats();
+        rideStops.stream()
+                .filter(stop -> stop.getStopOrder() >= fromOrder && stop.getStopOrder() < toOrder)
+                .forEach(stop -> stop.setAvailableSeats((byte) (stop.getAvailableSeats() + seats)));
+        booking.setStatus(Status.CANCELLED);
+        bookingRepository.save(booking);
     }
 
     @Transactional
@@ -160,16 +198,40 @@ public class RideService {
     public MyRidesResponseDTO getMyRides(final User user) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         OffsetDateTime monthAgo = now.minusMonths(1L);
-        List<Booking> upcomingBookings = bookingRepository.findUpcomingByPassengerId(user.getId(), now);
-        List<Booking> pastBookings = bookingRepository.findPastByPassengerId(user.getId(), monthAgo, now);
-        List<Ride> upcomingHostedRides = rideRepository.findUpcomingByDriverId(user.getId(), now);
-        List<Ride> pastHostedRides = rideRepository.findPastByDriverId(user.getId(), monthAgo, now);
+        List<Booking> bookings = bookingRepository.findRecentByPassengerId(user.getId(), monthAgo);
+        List<Ride> rides = rideRepository.findRecentByDriverId(user.getId(), monthAgo);
+        Comparator<OffsetDateTime> ascending = Comparator.nullsLast(
+                Comparator.comparing(OffsetDateTime::toInstant));
+        Comparator<OffsetDateTime> descending = Comparator.nullsLast(
+                Comparator.comparing(OffsetDateTime::toInstant).reversed());
         return new MyRidesResponseDTO(
-                upcomingBookings.stream().map(this::mapBooking).toList(),
-                pastBookings.stream().map(this::mapBooking).toList(),
-                upcomingHostedRides.stream().map(this::mapHostedRide).toList(),
-                pastHostedRides.stream().map(this::mapHostedRide).toList()
+                bookings.stream().filter(b -> isUpcoming(b.getToStop().getDepartsAt(), now))
+                        .sorted(Comparator.comparing((Booking b) -> b.getFromStop().getDepartsAt(), ascending)
+                                .thenComparing(Booking::getId)).map(this::mapBooking).toList(),
+                bookings.stream().filter(b -> isPast(b.getToStop().getDepartsAt(), monthAgo, now))
+                        .sorted(Comparator.comparing((Booking b) -> b.getToStop().getDepartsAt(), descending)
+                                .thenComparing(Booking::getId)).map(this::mapBooking).toList(),
+                rides.stream().filter(r -> isUpcoming(scheduledEnd(r), now))
+                        .sorted(Comparator.comparing(Ride::getDepartureAt, ascending).thenComparing(Ride::getId))
+                        .map(this::mapHostedRide).toList(),
+                rides.stream().filter(r -> isPast(scheduledEnd(r), monthAgo, now))
+                        .sorted(Comparator.comparing(this::scheduledEnd, descending).thenComparing(Ride::getId))
+                        .map(this::mapHostedRide).toList()
         );
+    }
+
+    private OffsetDateTime scheduledEnd(final Ride ride) {
+        RideStop last = ride.getRideStops().stream().max(Comparator.comparing(RideStop::getStopOrder))
+                .orElse(null);
+        return last == null ? null : last.getDepartsAt();
+    }
+
+    private boolean isUpcoming(final OffsetDateTime end, final OffsetDateTime now) {
+        return end == null || end.isAfter(now);
+    }
+
+    private boolean isPast(final OffsetDateTime end, final OffsetDateTime from, final OffsetDateTime now) {
+        return end != null && !end.isBefore(from) && !end.isAfter(now);
     }
 
     private double[] resolveCoordinates(final Long id, final LocationType type) {
@@ -234,8 +296,8 @@ public class RideService {
 
     private BookedRideDTO mapBooking(final Booking booking) {
         Ride ride = booking.getRide();
-        Status status = booking.getStatus() == Status.INACTIVE || ride.getStatus() == Status.INACTIVE
-                ? Status.INACTIVE : Status.ACTIVE;
+        boolean cancelled = booking.getStatus() != Status.ACTIVE || ride.getStatus() != Status.ACTIVE;
+        Status status = cancelled ? Status.CANCELLED : Status.ACTIVE;
         return new BookedRideDTO(
                 booking.getId(),
                 ride.getId(),
@@ -253,7 +315,9 @@ public class RideService {
                 .sorted(Comparator.comparing(RideStop::getStopOrder))
                 .map(this::mapDetailedStop)
                 .toList();
-        return new HostedRideDTO(ride.getId(), ride.getStatus(), ride.getSeatsTotal(), stops);
+        return new HostedRideDTO(ride.getId(),
+                ride.getStatus() == Status.ACTIVE ? Status.ACTIVE : Status.CANCELLED,
+                ride.getSeatsTotal(), stops);
     }
 
     private RideDriverDTO mapDriver(final User driver) {

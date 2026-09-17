@@ -13,6 +13,9 @@
     - Preflight: `OPTIONS /**`
 - **Admin**: Require `ROLE_ADMIN` using `@PreAuthorize("hasRole('ADMIN')")`.
 - **Protected**: All other routes require an authenticated JWT cookie.
+- **Passenger cancellation**: `DELETE /rides/me/bookings/{bookingId}` uses an owner-filtered
+  booking lookup; absent and other-passenger IDs both return 404. Authentication alone does not
+  permit cancelling another passenger's booking. `DELETE /rides/{id}` is separately driver-owner-only.
 
 ## CORS Configuration
 - Allowed origins: `http://localhost:5173`, `http://127.0.0.1:5173`.

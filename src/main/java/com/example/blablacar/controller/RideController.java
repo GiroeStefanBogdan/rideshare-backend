@@ -78,4 +78,12 @@ public class RideController {
         long bookingId = rideService.reserveSeats(userPrincipal.getUser(), id, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(Optional.of(bookingId));
     }
+
+    @DeleteMapping("/me/bookings/{bookingId}")
+    public ResponseEntity<Void> cancelBooking(
+            @AuthenticationPrincipal final UserPrincipal userPrincipal,
+            @PathVariable final long bookingId) {
+        rideService.cancelBooking(userPrincipal.getUser(), bookingId);
+        return ResponseEntity.noContent().build();
+    }
 }

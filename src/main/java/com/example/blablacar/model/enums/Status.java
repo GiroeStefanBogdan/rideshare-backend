@@ -5,5 +5,5 @@ package com.example.blablacar.model.enums;
  * Since: 4/1/2026
  */
 public enum Status {
-    ACTIVE, INACTIVE
+    ACTIVE, INACTIVE, CANCELLED
 }
