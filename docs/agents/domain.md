@@ -77,6 +77,38 @@
 - User-facing location names retain Romanian casing and diacritics. Original source names and normalized search
   text are distinct from display names.
 
+## Reviews
+- One directional review per member pair, for life. The pair is unique; a later shared ride reopens the
+  existing review instead of creating a second one, and the reverse direction is a separate review.
+- Reviews are eligible only from a qualifying shared ride: an active booking on an active ride whose
+  passenger drop-off has passed, with author and recipient distinct. Cancelled experiences never
+  qualify, and a driver's own self-booking never counts.
+- The window is fourteen days from the passenger's scheduled drop-off. It is recomputed from the
+  drop-off, never from submission time, and only a strictly later drop-off reopens it. Legacy rides
+  with no schedule never open a window.
+- Eligibility is derived from persisted bookings on every request. It is never accepted from a client,
+  so a member cannot review a stranger by asserting a past ride.
+- Content publishes when both counterparts hold a pending submission for the same cycle, or once its
+  own window closes. A lone submission therefore becomes public at its deadline rather than waiting
+  forever.
+- Publication locks the cycle. Further edits require a later shared ride to reopen the window. Hidden
+  reviews are also locked.
+- An amendment never removes what is already public: the review keeps its last published score,
+  comment, and role badge for public display and reputation while the pending values remain visible to
+  their author only.
+- Reputation is the arithmetic mean of published, non-hidden received reviews to one decimal, plus the
+  count. Unrated is a null average with zero count, never a zero score. Hidden and pending content
+  contributes nothing.
+- The role badge records whether the review was written as a driver or as a passenger, on the most
+  recent qualifying shared ride. Reputation itself is combined, not split by role.
+- Moderators hide or restore published reviews. Hiding is reversible and never deletes; a hide or
+  restore recomputes the affected member's reputation in the same transaction.
+- Reviews outlive ride history. Account deletion anonymizes authored reviews to `Deleted member`,
+  clears the author link, and removes the deleted member's own received reviews and reputation.
+  Anonymization runs before the account row is removed, so a review never references a deleted account.
+- A member cannot delete and recreate a review to escape the one-review rule, and there is no
+  membership check: anyone may read published reviews and any member's rating summary.
+
 ## Vehicles
 - A ride may reference one car owned by its driver. The association is optional and is cleared if that car is deleted.
 - Public ride details expose brand, model, color, and year, but not license plate or registered seat count.

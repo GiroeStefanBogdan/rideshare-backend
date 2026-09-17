@@ -1,6 +1,8 @@
 package com.example.blablacar.service.ride;
 
+import com.example.blablacar.dto.review.RatingSummaryDto;
 import com.example.blablacar.dto.ride.MyRidesResponseDTO;
+import com.example.blablacar.service.user.ReviewService;
 import com.example.blablacar.model.enums.Status;
 import com.example.blablacar.model.location.AdministrativeUnit;
 import com.example.blablacar.model.ride.Booking;
@@ -25,11 +27,13 @@ class RideServiceMyRidesTest {
     private final BookingRepository bookings = mock(BookingRepository.class);
     private final RideRepository rides = mock(RideRepository.class);
     private final User user = new User();
+    private final ReviewService reviews = mock(ReviewService.class);
     private final RideService service = new RideService(rides, null, null, null, bookings,
-            null, Clock.fixed(NOW.toInstant(), NOW.getOffset()), null);
+            null, Clock.fixed(NOW.toInstant(), NOW.getOffset()), null, reviews);
 
     private MyRidesResponseDTO response(final OffsetDateTime end, final Status status) {
         user.setId(7L);
+        when(reviews.getRatingSummary(7L)).thenReturn(RatingSummaryDto.unrated());
         AdministrativeUnit location = new AdministrativeUnit();
         location.setName("Cluj");
         RideStop start = new RideStop(location, null, (byte) 1, NOW.minusHours(2), (byte) 2, (short) 0);

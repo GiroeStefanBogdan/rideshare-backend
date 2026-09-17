@@ -4,6 +4,7 @@ import com.example.blablacar.dto.user.UpdateUserRequest;
 import com.example.blablacar.dto.user.UserProfileDto;
 import com.example.blablacar.dto.user.UserPublicProfileDto;
 import com.example.blablacar.dto.user.UserResponseDto;
+import com.example.blablacar.dto.review.UserReviewsDto;
 import com.example.blablacar.exception.user.EmailAlreadyExistsException;
 import com.example.blablacar.exception.user.UserNotFoundException;
 import com.example.blablacar.model.enums.Role;
@@ -11,6 +12,7 @@ import com.example.blablacar.model.user.User;
 import com.example.blablacar.repository.user.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,13 +22,16 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RegistrationService registrationService;
+    private final ReviewService reviewService;
 
     public UserService(final UserRepository userRepository,
                        final PasswordEncoder passwordEncoder,
-                       final RegistrationService registrationService) {
+                       final RegistrationService registrationService,
+                       final ReviewService reviewService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.registrationService = registrationService;
+        this.reviewService = reviewService;
     }
 
     public List<UserResponseDto> getAllUsers() {
@@ -41,7 +46,8 @@ public class UserService {
 
     public UserPublicProfileDto getPublicProfile(final long id) {
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
-        return UserPublicProfileDto.from(user);
+        UserReviewsDto reviews = reviewService.getPublicReviews(id);
+        return UserPublicProfileDto.from(user, reviews.summary(), reviews.reviews());
     }
 
     public UserResponseDto updateProfile(final User authenticatedUser,
@@ -91,10 +97,14 @@ public class UserService {
         return UserResponseDto.from(userRepository.save(user));
     }
 
+    @Transactional
     public void deleteUserById(final Long id) {
-        if (userRepository.existsById(id)) {
-            userRepository.deleteById(id);
-        }
+        userRepository.findById(id).ifPresent(user -> {
+            // Reviews outlive the account: contributions stay, attribution is anonymized, and the
+            // deleted member's own reputation and received listing are removed.
+            reviewService.anonymizeForDeletedUser(user);
+            userRepository.delete(user);
+        });
     }
 
     public void deleteMyAccount(final Long id) {

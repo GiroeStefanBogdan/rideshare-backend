@@ -9,6 +9,11 @@ import com.example.blablacar.exception.ride.InvalidRidePricingException;
 import com.example.blablacar.exception.ride.InvalidRideScheduleException;
 import com.example.blablacar.exception.ride.RideDateTooDistantException;
 import com.example.blablacar.exception.ride.RideNotFoundException;
+import com.example.blablacar.exception.review.ReviewEditLockedException;
+import com.example.blablacar.exception.review.ReviewForbiddenException;
+import com.example.blablacar.exception.review.ReviewNotEligibleException;
+import com.example.blablacar.exception.review.ReviewNotFoundException;
+import com.example.blablacar.exception.review.ReviewWindowClosedException;
 import com.example.blablacar.exception.user.EmailAlreadyExistsException;
 import com.example.blablacar.exception.user.InvalidAgeException;
 import com.example.blablacar.exception.user.UserCarNotFoundException;
@@ -176,6 +181,43 @@ public class GlobalExceptionHandler {
                         LocalDateTime.now(),
                         status.value(),
                         "Booking Cancellation Expired",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(ReviewNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleReviewNotFound(final ReviewNotFoundException exception) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status)
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        status.value(),
+                        "Review Not Found",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler({ReviewNotEligibleException.class, ReviewWindowClosedException.class,
+            ReviewEditLockedException.class})
+    public ResponseEntity<ErrorResponseDto> handleReviewConflict(final RuntimeException exception) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        return ResponseEntity.status(status)
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        status.value(),
+                        "Review Not Allowed",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(ReviewForbiddenException.class)
+    public ResponseEntity<ErrorResponseDto> handleReviewForbidden(final ReviewForbiddenException exception) {
+        HttpStatus status = HttpStatus.FORBIDDEN;
+        return ResponseEntity.status(status)
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        status.value(),
+                        "Review Forbidden",
                         exception.getMessage()
                 ));
     }

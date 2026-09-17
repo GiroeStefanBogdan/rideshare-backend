@@ -37,4 +37,32 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select b from Booking b where b.id = :id")
     Optional<Booking> findByIdForUpdate(long id);
+
+    @Query("""
+            select b from Booking b
+            join fetch b.ride r
+            join fetch r.driver d
+            join fetch b.toStop ts
+            where b.passenger.id = :userId
+              and b.status = com.example.blablacar.model.enums.Status.ACTIVE
+              and r.status = com.example.blablacar.model.enums.Status.ACTIVE
+              and ts.departsAt is not null
+              and ts.departsAt between :from and :to
+            order by ts.departsAt desc
+            """)
+    List<Booking> findReviewableBookingsAsPassenger(long userId, OffsetDateTime from, OffsetDateTime to);
+
+    @Query("""
+            select b from Booking b
+            join fetch b.ride r
+            join fetch b.passenger p
+            join fetch b.toStop ts
+            where r.driver.id = :userId
+              and b.status = com.example.blablacar.model.enums.Status.ACTIVE
+              and r.status = com.example.blablacar.model.enums.Status.ACTIVE
+              and ts.departsAt is not null
+              and ts.departsAt between :from and :to
+            order by ts.departsAt desc
+            """)
+    List<Booking> findReviewableBookingsAsDriver(long userId, OffsetDateTime from, OffsetDateTime to);
 }

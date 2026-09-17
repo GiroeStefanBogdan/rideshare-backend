@@ -31,7 +31,7 @@ class RideServiceCancelBookingTest {
     private final RideStopRepository stops = mock(RideStopRepository.class);
     private final User passenger = new User();
     private final RideService service = new RideService(rides, null, null, stops, bookings,
-            null, Clock.fixed(NOW.toInstant(), NOW.getOffset()), null);
+            null, Clock.fixed(NOW.toInstant(), NOW.getOffset()), null, null);
     private final RideStop before = stop(1, (byte) 3, NOW.minusHours(1));
     private final RideStop pickup = stop(2, (byte) 1, NOW.plusHours(1));
     private final RideStop middle = stop(3, (byte) 2, NOW.plusHours(2));
