@@ -1,5 +1,6 @@
 package com.example.blablacar.dto.ride;
 
+import com.example.blablacar.model.location.LocationType;
 import org.junit.jupiter.api.Test;
 
 import jakarta.validation.ConstraintViolation;
@@ -10,7 +11,6 @@ import jakarta.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RideSearchRequestDTOTest {
@@ -24,8 +24,8 @@ class RideSearchRequestDTOTest {
 
     private RideSearchRequestDTO buildRequest(final Integer maxPrice) {
         return new RideSearchRequestDTO(
-                1L, "ADMIN_UNIT", 2L, "ADMIN_UNIT",
-                LocalDate.of(2026, 5, 1), 2,
+                1L, LocationType.ADMIN_UNIT, 2L, LocationType.ADMIN_UNIT,
+                LocalDate.now().plusDays(1), 2,
                 null, null, maxPrice, null, null, null);
     }
 
@@ -42,9 +42,7 @@ class RideSearchRequestDTOTest {
         final Set<ConstraintViolation<RideSearchRequestDTO>> violations =
                 validator.validate(buildRequest(0));
 
-        assertFalse(violations.isEmpty()
-                        && violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("maxPrice")),
-                "Zero maxPrice must be valid");
+        assertTrue(violations.isEmpty(), "Zero maxPrice must be valid");
     }
 
     @Test
