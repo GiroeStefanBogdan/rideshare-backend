@@ -33,6 +33,10 @@ public class RideStopResolver {
     }
 
     public List<RideStop> resolve(final List<RideStopDTO> requestedStops, final byte seatsTotal) {
+        if (requestedStops == null || requestedStops.isEmpty()
+                || requestedStops.stream().anyMatch(stop -> stop == null || stop.departsAt() == null)) {
+            throw new InvalidRideScheduleException("Every stop must have a scheduled time");
+        }
         List<RideStopDTO> rideStops = requestedStops.stream()
                 .sorted(Comparator.comparing(RideStopDTO::stopOrder))
                 .toList();

@@ -14,7 +14,7 @@ import java.util.List;
  */
 public record RideDTO(@NotNull @Size(min = 2, max = 7,
                               message = "There should be between 2 and 7 stops")
-                      List<@Valid RideStopDTO> rideStops,
+                      List<@NotNull @Valid RideStopDTO> rideStops,
                       @Min(value = 1, message = "Seats should not be less then 1")
                       @Max(value = 4, message = "Seats should not be more then 4")
                       @NotNull Byte seatsTotal,

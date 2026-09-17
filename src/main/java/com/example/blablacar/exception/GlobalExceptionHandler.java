@@ -1,6 +1,8 @@
 package com.example.blablacar.exception;
 
 import com.example.blablacar.dto.auth.ErrorResponseDto;
+import com.example.blablacar.exception.ride.BookingCancellationExpiredException;
+import com.example.blablacar.exception.ride.BookingNotFoundException;
 import com.example.blablacar.exception.ride.ForbiddenRideException;
 import com.example.blablacar.exception.ride.InvalidRideStopException;
 import com.example.blablacar.exception.ride.InvalidRidePricingException;
@@ -148,6 +150,32 @@ public class GlobalExceptionHandler {
                         LocalDateTime.now(),
                         status.value(),
                         "Invalid ride pricing",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(BookingNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleBookingNotFound(
+            final BookingNotFoundException exception) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status)
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        status.value(),
+                        "Booking Not Found",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(BookingCancellationExpiredException.class)
+    public ResponseEntity<ErrorResponseDto> handleBookingCancellationExpired(
+            final BookingCancellationExpiredException exception) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        return ResponseEntity.status(status)
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        status.value(),
+                        "Booking Cancellation Expired",
                         exception.getMessage()
                 ));
     }
