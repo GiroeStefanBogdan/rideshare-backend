@@ -1,7 +1,10 @@
 package com.example.blablacar.dto.ride;
 
+import com.example.blablacar.model.location.LocationType;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
@@ -15,17 +18,17 @@ import java.time.LocalDate;
  */
 public record RideSearchRequestDTO(
         @NotNull @Positive Long fromId,
-        @NotNull String fromType,
+        @NotNull LocationType fromType,
         @NotNull @Positive Long toId,
-        @NotNull String toType,
-        @NotNull LocalDate date,
+        @NotNull LocationType toType,
+        @NotNull @FutureOrPresent LocalDate date,
         @Min(1) int seats,
 
         // Optional filters
-        Double maxDistanceStart,
-        Double maxDistanceEnd,
+        @PositiveOrZero Double maxDistanceStart,
+        @PositiveOrZero Double maxDistanceEnd,
         @PositiveOrZero Integer maxPrice,
-        String timeWindow,       // BEFORE_8, 8_12, 12_18, AFTER_18
+        @Pattern(regexp = "BEFORE_8|8_12|12_18|AFTER_18") String timeWindow,
         Boolean smokingAllowed,
         Boolean petFriendly
 ) {

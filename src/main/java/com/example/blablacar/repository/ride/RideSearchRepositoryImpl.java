@@ -9,6 +9,7 @@ import jakarta.persistence.Query;
 import jakarta.persistence.Tuple;
 import org.springframework.stereotype.Repository;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -22,7 +23,7 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
 
     private static final double DEFAULT_MAX_DISTANCE_KM = 30.0;
     private static final double METERS_PER_KILOMETER = 1000.0;
-    private static final ZoneId SEARCH_DAY_ZONE = ZoneId.systemDefault();
+    private static final ZoneId SEARCH_DAY_ZONE = ZoneId.of("Europe/Bucharest");
 
     private static final String BASE_SEARCH_SQL = """
             SELECT r.id AS ride_id,
@@ -33,7 +34,11 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
                    ui.can_smoke AS driver_can_smoke,
                    ui.pet_friendly AS driver_pet_friendly,
                    rs_from.id AS rs_from_id,
-                   rs_from.available_seats AS from_available_seats,
+                   (SELECT MIN(capacity.available_seats)
+                    FROM ride_stop capacity
+                    WHERE capacity.ride_id = r.id
+                      AND capacity.stop_order >= rs_from.stop_order
+                      AND capacity.stop_order < rs_to.stop_order) AS from_available_seats,
                    rs_from.cumulative_price_per_seat AS from_price,
                    rs_from.departs_at AS from_departs_at,
                    COALESCE(s_from.name, a_from.name) AS from_location_name,
@@ -77,24 +82,29 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
                     AND rs_segment.stop_order < rs_to.stop_order
                     AND rs_segment.available_seats < :seats
               )
-              AND r.departure_at >= :dayStart
-              AND r.departure_at < :dayEnd
+              AND rs_from.departs_at > :now
+              AND rs_from.departs_at >= :dayStart
+              AND rs_from.departs_at < :dayEnd
             """;
 
     private static final String FROM_DISTANCE_FILTER = """
-              AND ST_DWithin(
+              AND ((:fromType = 'STREET' AND rs_from.street_id = :fromId)
+                OR (:fromType = 'ADMIN_UNIT' AND rs_from.street_id IS NULL AND rs_from.location_id = :fromId)
+                OR ST_DWithin(
                   COALESCE(s_from.geom, a_from.geom)::geography,
                   ST_SetSRID(ST_MakePoint(:fromLon, :fromLat), 4326)::geography,
                   :maxDistStart
-              )
+              ))
             """;
 
     private static final String TO_DISTANCE_FILTER = """
-              AND ST_DWithin(
+              AND ((:toType = 'STREET' AND rs_to.street_id = :toId)
+                OR (:toType = 'ADMIN_UNIT' AND rs_to.street_id IS NULL AND rs_to.location_id = :toId)
+                OR ST_DWithin(
                   COALESCE(s_to.geom, a_to.geom)::geography,
                   ST_SetSRID(ST_MakePoint(:toLon, :toLat), 4326)::geography,
                   :maxDistEnd
-              )
+              ))
             """;
 
     private static final String MAX_PRICE_FILTER = """
@@ -102,13 +112,15 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
             """;
 
     private static final String ORDER_SQL = """
-            ORDER BY dist_start_km ASC, r.departure_at ASC
+            ORDER BY dist_start_km ASC, rs_from.departs_at ASC
             """;
 
     private final EntityManager entityManager;
+    private final Clock clock;
 
-    public RideSearchRepositoryImpl(final EntityManager entityManager) {
+    public RideSearchRepositoryImpl(final EntityManager entityManager, final Clock clock) {
         this.entityManager = entityManager;
+        this.clock = clock;
     }
 
     @Override
@@ -133,6 +145,11 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
                                    final RideSearchRequestDTO request,
                                    final double fromLat, final double fromLon,
                                    final double toLat, final double toLon) {
+        params.put("now", OffsetDateTime.now(clock));
+        params.put("fromId", request.fromId());
+        params.put("fromType", request.fromType().name());
+        params.put("toId", request.toId());
+        params.put("toType", request.toType().name());
         params.put("fromLon", fromLon);
         params.put("fromLat", fromLat);
         params.put("toLon", toLon);
@@ -188,10 +205,10 @@ public class RideSearchRepositoryImpl implements RideSearchRepository {
         }
 
         return switch (timeWindow) {
-            case "BEFORE_8" -> "  AND EXTRACT(HOUR FROM r.departure_at) < 8\n";
-            case "8_12" -> "  AND EXTRACT(HOUR FROM r.departure_at) BETWEEN 8 AND 11\n";
-            case "12_18" -> "  AND EXTRACT(HOUR FROM r.departure_at) BETWEEN 12 AND 17\n";
-            case "AFTER_18" -> "  AND EXTRACT(HOUR FROM r.departure_at) >= 18\n";
+            case "BEFORE_8" -> "  AND EXTRACT(HOUR FROM rs_from.departs_at AT TIME ZONE 'Europe/Bucharest') < 8\n";
+            case "8_12" -> "  AND EXTRACT(HOUR FROM rs_from.departs_at AT TIME ZONE 'Europe/Bucharest') BETWEEN 8 AND 11\n";
+            case "12_18" -> "  AND EXTRACT(HOUR FROM rs_from.departs_at AT TIME ZONE 'Europe/Bucharest') BETWEEN 12 AND 17\n";
+            case "AFTER_18" -> "  AND EXTRACT(HOUR FROM rs_from.departs_at AT TIME ZONE 'Europe/Bucharest') >= 18\n";
             default -> "";
         };
     }

@@ -22,6 +22,7 @@ import com.example.blablacar.exception.ride.RideDepartedException;
 import com.example.blablacar.exception.ride.RideInactiveException;
 import com.example.blablacar.exception.ride.RideNotFoundException;
 import com.example.blablacar.model.enums.Status;
+import com.example.blablacar.model.location.LocationType;
 import com.example.blablacar.model.ride.Booking;
 import com.example.blablacar.model.ride.Ride;
 import com.example.blablacar.model.ride.RideStop;
@@ -171,8 +172,8 @@ public class RideService {
         );
     }
 
-    private double[] resolveCoordinates(final Long id, final String type) {
-        if ("STREET".equals(type)) {
+    private double[] resolveCoordinates(final Long id, final LocationType type) {
+        if (LocationType.STREET.equals(type)) {
             return streetRepository.findById(id)
                     .map(s -> new double[] {s.getLatitude().doubleValue(), s.getLongitude().doubleValue()})
                     .orElse(null);
@@ -193,9 +194,6 @@ public class RideService {
 //        if (ride.getDriver().getId() == passenger.getId()) {
 //            throw new ForbiddenRideException();
 //        }
-        if (ride.getDepartureAt().isBefore(OffsetDateTime.now(clock))) {
-            throw new RideDepartedException();
-        }
         List<RideStop> rideStops = rideStopRepository.findAllByRide(ride);
         RideStop fromStop = rideStops.stream()
                 .filter(s -> s.getId().equals(request.fromStopId()))
@@ -205,6 +203,9 @@ public class RideService {
                 .filter(s -> s.getId().equals(request.toStopId()))
                 .findFirst()
                 .orElseThrow(InvalidRideStopException::new);
+        if (!fromStop.getDepartsAt().isAfter(OffsetDateTime.now(clock))) {
+            throw new RideDepartedException();
+        }
         if (fromStop.getStopOrder() >= toStop.getStopOrder()) {
             throw new InvalidRideStopException();
         }
