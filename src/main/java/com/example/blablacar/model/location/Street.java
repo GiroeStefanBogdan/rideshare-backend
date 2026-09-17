@@ -37,6 +37,9 @@ public class Street {
     @Column(name = "full_name", columnDefinition = "text")
     private String fullName;
 
+    @Column(name = "display_full_name", columnDefinition = "text")
+    private String displayFullName;
+
     @Column(name = "latitude", precision = 9, scale = 6)
     private BigDecimal latitude;
 
@@ -71,6 +74,10 @@ public class Street {
 
     public String getFullName() {
         return fullName;
+    }
+
+    public String getDisplayFullName() {
+        return displayFullName;
     }
 
     public BigDecimal getLatitude() {

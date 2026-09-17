@@ -12,6 +12,7 @@ import com.example.blablacar.repository.location.StreetRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -35,6 +36,9 @@ public class RideStopResolver {
         List<RideStopDTO> rideStops = requestedStops.stream()
                 .sorted(Comparator.comparing(RideStopDTO::stopOrder))
                 .toList();
+        if (rideStops.stream().map(RideStopDTO::id).distinct().count() != rideStops.size()) {
+            throw new InvalidRideStopException("Ride locations must be distinct");
+        }
         validateOrderAndSchedule(rideStops);
         validatePricing(rideStops);
 
@@ -73,7 +77,7 @@ public class RideStopResolver {
                 administrativeUnit = administrativeUnitsById.get(stop.id());
             }
             return new RideStop(administrativeUnit, street, stop.stopOrder(), stop.departsAt(), seatsTotal,
-                    stop.price());
+                    stop.cumulativePricePerSeat());
         }).toList();
     }
 
@@ -85,21 +89,22 @@ public class RideStopResolver {
             }
             if (index > 0) {
                 OffsetDateTime previousTime = stops.get(index - 1).departsAt();
-                if (!stop.departsAt().isAfter(previousTime)) {
-                    throw new InvalidRideScheduleException("Stop times must be strictly increasing");
+                if (Duration.between(previousTime, stop.departsAt()).toMinutes() < 1) {
+                    throw new InvalidRideScheduleException("Stop times must be at least one minute apart");
                 }
             }
         }
     }
 
     private void validatePricing(final List<RideStopDTO> stops) {
-        for (int index = 1; index < stops.size(); index++) {
-            if (stops.get(index).price() >= stops.get(index - 1).price()) {
-                throw new InvalidRidePricingException("Stop prices must strictly decrease");
-            }
+        if (stops.getFirst().cumulativePricePerSeat() != 0) {
+            throw new InvalidRidePricingException("The origin cumulative price must be zero");
         }
-        if (stops.getLast().price() != 0) {
-            throw new InvalidRidePricingException("The final stop price must be zero");
+        for (int index = 1; index < stops.size(); index++) {
+            if (stops.get(index).cumulativePricePerSeat()
+                    <= stops.get(index - 1).cumulativePricePerSeat()) {
+                throw new InvalidRidePricingException("Cumulative prices must strictly increase");
+            }
         }
     }
 }

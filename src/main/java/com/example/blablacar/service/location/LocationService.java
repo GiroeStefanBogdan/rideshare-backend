@@ -75,6 +75,9 @@ public class LocationService {
     }
 
     private String getAdministrativeUnitFullName(final AdministrativeUnit administrativeUnit) {
+        if (administrativeUnit.getDisplayFullName() != null) {
+            return administrativeUnit.getDisplayFullName();
+        }
         if (administrativeUnit.getParent() == null) {
             return administrativeUnit.getName();
         }
@@ -101,14 +104,14 @@ public class LocationService {
     }
 
     private String getStreetFullName(final Street street) {
-        if (street.getFullName() != null) {
-            return street.getFullName();
+        if (street.getDisplayFullName() != null) {
+            return street.getDisplayFullName();
         }
         return street.getName() + ", " + street.getLocation().getName();
     }
 
     private boolean isRelevantStreetMatch(final LocationResultDTO location, final String query) {
-        return !STREET_TYPE.equals(location.type()) || getMatchScore(location.name(), query) < NO_MATCH_SCORE;
+        return !STREET_TYPE.equals(location.type()) || getMatchScore(location.fullName(), query) < NO_MATCH_SCORE;
     }
 
     private Comparator<LocationResultDTO> getLocationComparator(final String query) {
@@ -142,6 +145,11 @@ public class LocationService {
             return 2;
         }
         if (normalizedName.contains(normalizedQuery)) {
+            return 3;
+        }
+        if (Stream.of(normalizedQuery.split("[\\s,]+"))
+                .filter((final String token) -> !token.isBlank())
+                .allMatch(normalizedName::contains)) {
             return 3;
         }
 

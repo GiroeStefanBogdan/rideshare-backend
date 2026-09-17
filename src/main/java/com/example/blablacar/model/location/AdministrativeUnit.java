@@ -56,6 +56,9 @@ public class AdministrativeUnit {
     @Column(name = "population")
     private Long population;
 
+    @Column(name = "display_full_name", columnDefinition = "text")
+    private String displayFullName;
+
     // Getters and setters
 
     public Long getId() { return id; }
@@ -83,5 +86,9 @@ public class AdministrativeUnit {
 
     public Long getPopulation() {
         return population;
+    }
+
+    public String getDisplayFullName() {
+        return displayFullName;
     }
 }

@@ -11,6 +11,7 @@ import com.example.blablacar.dto.ride.RideSearchRequestDTO;
 import com.example.blablacar.dto.ride.RideSearchResultDTO;
 import com.example.blablacar.dto.ride.RideStopBasicDTO;
 import com.example.blablacar.dto.ride.RideStopDetailsDTO;
+import com.example.blablacar.dto.ride.RideVehicleDTO;
 import com.example.blablacar.exception.ride.ForbiddenRideException;
 import com.example.blablacar.exception.ride.InvalidRidePricingException;
 import com.example.blablacar.exception.ride.InvalidRideScheduleException;
@@ -26,11 +27,13 @@ import com.example.blablacar.model.ride.Ride;
 import com.example.blablacar.model.ride.RideStop;
 import com.example.blablacar.model.user.User;
 import com.example.blablacar.model.user.UserInfo;
+import com.example.blablacar.model.user.UserCar;
 import com.example.blablacar.repository.location.AdministrativeUnitRepository;
 import com.example.blablacar.repository.location.StreetRepository;
 import com.example.blablacar.repository.ride.BookingRepository;
 import com.example.blablacar.repository.ride.RideRepository;
 import com.example.blablacar.repository.ride.RideStopRepository;
+import com.example.blablacar.repository.user.car.UserCarRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,6 +57,7 @@ public class RideService {
     private final BookingRepository bookingRepository;
     private final RideStopResolver rideStopResolver;
     private final Clock clock;
+    private final UserCarRepository userCarRepository;
 
     @Autowired
     public RideService(final RideRepository rideRepository,
@@ -62,7 +66,8 @@ public class RideService {
                        final RideStopRepository rideStopRepository,
                        final BookingRepository bookingRepository,
                        final RideStopResolver rideStopResolver,
-                       final Clock clock) {
+                       final Clock clock,
+                       final UserCarRepository userCarRepository) {
         this.rideRepository = rideRepository;
         this.administrativeUnitRepository = administrativeUnitRepository;
         this.streetRepository = streetRepository;
@@ -70,6 +75,7 @@ public class RideService {
         this.rideStopResolver = rideStopResolver;
         this.bookingRepository = bookingRepository;
         this.clock = clock;
+        this.userCarRepository = userCarRepository;
     }
 
     @Transactional
@@ -83,8 +89,11 @@ public class RideService {
         if (now.plusMonths(1L).isBefore(departureAt)) {
             throw new RideDateTooDistantException();
         }
+        UserCar car = rideRequest.carId() == null ? null : userCarRepository
+                .findByIdAndUser_Id(rideRequest.carId(), user.getId())
+                .orElseThrow(() -> new InvalidRideStopException("The selected car does not belong to the driver"));
         Ride ride = new Ride(user, rideStops.getFirst().getLocation(), rideStops.getLast().getLocation(), rideStops,
-                rideRequest.seatsTotal(), rideStops.getFirst().getPricePerSeat(), departureAt);
+                rideRequest.seatsTotal(), rideStops.getLast().getCumulativePricePerSeat(), departureAt, car);
         rideStops.forEach(rs -> rs.setRide(ride));
         return rideRepository.save(ride).getId();
     }
@@ -142,7 +151,8 @@ public class RideService {
                 .sorted(Comparator.comparing(RideStop::getStopOrder))
                 .map(this::mapDetailedStop)
                 .toList();
-        return new RideDetailsDTO(ride.getId(), mapDriver(ride.getDriver()), ride.getSeatsTotal(), stops);
+        return new RideDetailsDTO(ride.getId(), mapDriver(ride.getDriver()), ride.getSeatsTotal(),
+                mapVehicle(ride.getCar()), stops);
     }
 
     @Transactional
@@ -211,12 +221,12 @@ public class RideService {
         for (RideStop stop : segmentStops) {
             stop.setAvailableSeats((byte) (stop.getAvailableSeats() - request.seats()));
         }
-        int fromPrice = fromStop.getPricePerSeat() != null ? fromStop.getPricePerSeat() : 0;
-        int toPrice = toStop.getPricePerSeat() != null ? toStop.getPricePerSeat() : 0;
-        if (fromPrice < toPrice) {
+        int fromPrice = fromStop.getCumulativePricePerSeat();
+        int toPrice = toStop.getCumulativePricePerSeat();
+        if (toPrice <= fromPrice) {
             throw new InvalidRidePricingException("The selected segment has invalid pricing");
         }
-        int totalPrice = (fromPrice - toPrice) * request.seats();
+        int totalPrice = (toPrice - fromPrice) * request.seats();
         Booking booking = new Booking(passenger, ride, fromStop, toStop, request.seats(), totalPrice);
         return bookingRepository.save(booking).getId();
     }
@@ -265,7 +275,13 @@ public class RideService {
     private RideStopDetailsDTO mapDetailedStop(final RideStop stop) {
         return new RideStopDetailsDTO(stop.getId(), stop.getStopOrder(), getLocationName(stop),
                 stop.getLocation().getName(),
-                toIsoString(stop.getDepartsAt()), stop.getAvailableSeats(), stop.getPricePerSeat());
+                toIsoString(stop.getDepartsAt()), stop.getAvailableSeats(),
+                stop.getCumulativePricePerSeat());
+    }
+
+    private RideVehicleDTO mapVehicle(final UserCar car) {
+        return car == null ? null : new RideVehicleDTO(car.getId(), car.getBrand(), car.getModel(), car.getColor(),
+                car.getYear());
     }
 
     private String getLocationName(final RideStop stop) {

@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
-# init_osm.sh
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PBF_PATH=""
+
+if [ "${1:-}" = "--pbf" ] && [ -n "${2:-}" ]; then
+    PBF_PATH="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"
+elif [ "$#" -ne 0 ]; then
+    echo "Usage: $0 [--pbf /path/to/romania.osm.pbf]" >&2
+    exit 2
+fi
 
 if [ -f "$REPO_DIR/.env" ]; then
     set -a
@@ -13,48 +19,36 @@ if [ -f "$REPO_DIR/.env" ]; then
     set +a
 fi
 
-DB_HOST="${POSTGRES_HOST:-localhost}"
-DB_PORT="${POSTGRES_PORT:-5432}"
-DB_NAME="${POSTGRES_DB:-aries}"
-DB_USER="${POSTGRES_USER:-postgres}"
-DB_PASS="${POSTGRES_PASSWORD:-admin}"
-PBF_URL="https://download.geofabrik.de/europe/romania-latest.osm.pbf"
-PBF_FILE="romania-latest.osm.pbf"
-PBF_PATH="$SCRIPT_DIR/$PBF_FILE"
-IMPORT_SCRIPT="$SCRIPT_DIR/import.lua"
-INIT_SQL="$SCRIPT_DIR/init.sql"
+: "${POSTGRES_HOST:?POSTGRES_HOST is required}"
+: "${POSTGRES_PORT:?POSTGRES_PORT is required}"
+: "${POSTGRES_DB:?POSTGRES_DB is required}"
+: "${POSTGRES_USER:?POSTGRES_USER is required}"
+: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
 
-require_command() {
-    local command_name="$1"
+for command_name in flock osm2pgsql psql pg_isready sha256sum wget; do
+    command -v "$command_name" >/dev/null 2>&1 || { echo "Missing required command: $command_name" >&2; exit 1; }
+done
 
-    if ! command -v "$command_name" >/dev/null 2>&1; then
-        echo "Missing required command: $command_name" >&2
-        exit 1
-    fi
-}
+export PGPASSWORD="$POSTGRES_PASSWORD"
+PSQL=(psql -X -v ON_ERROR_STOP=1 -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB")
+exec 9>"/tmp/drumbun-osm-${POSTGRES_DB}.lock"
+flock -n 9 || { echo "Another OSM refresh is already running." >&2; exit 1; }
+pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -d "$POSTGRES_DB" -U "$POSTGRES_USER" >/dev/null
 
-require_command osm2pgsql
-require_command psql
-require_command pg_isready
-
-if [ ! -f "$PBF_PATH" ]; then
-    require_command wget
-    echo "Downloading latest Romania OSM data..."
-    wget -O "$PBF_PATH" "$PBF_URL"
-fi
-
-export PGPASSWORD="$DB_PASS"
-
-if ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -U "$DB_USER" >/dev/null; then
-    echo "PostgreSQL is not ready at $DB_HOST:$DB_PORT for database '$DB_NAME' and user '$DB_USER'." >&2
+existing_rows="$("${PSQL[@]}" -Atc "SELECT (SELECT count(*) FROM admin_units) + (SELECT count(*) FROM streets) + (SELECT count(*) FROM ride)")"
+if [ "$existing_rows" -ne 0 ]; then
+    echo "Initialization requires empty admin_units, streets, and ride tables." >&2
     exit 1
 fi
 
-echo "Running osm2pgsql (Initial Staging)..."
-osm2pgsql -O flex -S "$IMPORT_SCRIPT" --slim --cache 4000 \
-    -d "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME" "$PBF_PATH"
+if [ -z "$PBF_PATH" ]; then
+    PBF_PATH="$SCRIPT_DIR/romania-latest.osm.pbf"
+    wget -O "$PBF_PATH" "https://download.geofabrik.de/europe/romania-latest.osm.pbf"
+fi
 
-echo "Running Initial SQL Processing..."
-psql -v ON_ERROR_STOP=1 -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$INIT_SQL"
-
-echo "Initial Import Complete!"
+"${PSQL[@]}" -c "CREATE SCHEMA IF NOT EXISTS osm_staging"
+osm2pgsql --create -O flex -S "$SCRIPT_DIR/import.lua" --slim --cache 4000 \
+    -H "$POSTGRES_HOST" -P "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$PBF_PATH"
+source_sha256="$(sha256sum "$PBF_PATH" | cut -d ' ' -f 1)"
+"${PSQL[@]}" -v source_url="$PBF_PATH" -v source_sha256="$source_sha256" \
+    -v importer_version="$(osm2pgsql --version | head -1)" -v initial=true -f "$SCRIPT_DIR/init.sql"

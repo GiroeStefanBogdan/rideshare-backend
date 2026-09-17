@@ -1,48 +1,50 @@
-# RideShare Backend Agent Guide
+# Agent Guide
 
-Authoritative entry point for agents working in this repository.
+Entry point for LLM agents. Frontend repository: `/home/adicu/rideshare-frontend`.
 
-## Stack
+## Task Routing
+Read specialized documentation only when working in that area:
+- **Endpoints / API Contract**: `docs/API.md`
+- **Database / PostGIS / Migrations**: `docs/DATABASE.md`
+- **Auth / Cookies / CORS**: `docs/SECURITY.md`
+- **Domain Logic / Invariants**: `docs/agents/domain.md`
 
-- Java 25; exact Spring Boot and dependency versions come from `pom.xml`.
-- Spring MVC, Spring Security, Spring Data JPA, PostgreSQL/PostGIS, and Flyway.
-- SvelteKit frontend is a separate repository at `/home/adicu/rideshare-frontend`.
+## Common Commands
+- Run app: `./mvnw spring-boot:run` (port 8080)
+- Lint check: `./mvnw validate` (Checkstyle — run after any Java edit)
+- Compile & SpotBugs: `./mvnw compile`
+- Run tests: `./mvnw test` or targeted `./mvnw test -Dtest=ClassName`
+- Full build: `./mvnw clean install` (run before finalizing tasks)
 
-## Read by task
+## Architecture & Scaffolding
+`Controller (HTTP/DTO)` -> `Service (Business/Tx/Mapping)` -> `Repository (Data)` -> `Database`
+- **Adding an endpoint (vertical slice)**:
+    1. Request/response Java records in `dto/<domain>` with Bean Validation on request fields.
+    2. Business logic, transactions (`@Transactional`), and entity-to-DTO mapping in `service/<domain>`.
+    3. Thin controller handler in `controller/`.
+    4. Domain exceptions in `exception/<domain>`, handled by global exception handler.
+    5. If public, register in `SecurityConfig.PUBLIC_ENDPOINTS`. Update `docs/API.md` and add tests.
 
-| Task | Read |
-| --- | --- |
-| Any code change | `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CODESTYLE.md` |
-| REST endpoint or frontend integration | `docs/API.md`, `docs/SECURITY.md`, `docs/agents/domain.md` |
-| Entity, query, or migration | `docs/DATABASE.md`, `docs/agents/domain.md` |
-| Build, tests, Git, or scaffolding | `docs/WORKFLOW.md` |
-| Security, cookies, CORS, or public routes | `docs/SECURITY.md` |
+## Non-Negotiable Code Style
+- **No Lombok, no `var`, no star imports.**
+- **All method parameters must be `final`.**
+- **Explicit getters, setters, and constructors** on JPA entities (protected no-arg constructor).
+- **No Bean interfaces** for services unless multiple implementations exist.
+- **Never expose JPA entities directly via APIs.** Always map to DTO records.
+- **Date formats**: ISO-8601 for `OffsetDateTime`, `yyyy-MM-dd` for `LocalDate`.
+- **Formatting**: 4 spaces, no tabs, max 120 chars/line, K&R braces required, `switch` requires `default`.
+- **SpotBugs**: `EI_EXPOSE_REP` and `EI_EXPOSE_REP2` are globally suppressed for Spring/JPA; do not add new global suppressions.
 
-`CONTEXT.md` is a compatibility pointer to this file.
+## Git Conventions
+- Branches: `feature/<name>` or `fix/<name>`.
+- Commit messages: Imperative present tense (e.g., `Add search endpoint filter`).
+- Never push, force-push, or squash without instruction.
 
-## Non-negotiable rules
+## Boundaries
+- **Autonomous**: Read files, execute tests/checks, write code/tests, create additive migrations.
+- **Ask First**: Modifying `pom.xml`, `SecurityConfig`, `JwtFilter`, `CorsConfig`, `application*.yml`, or destructive DB changes.
+- **Forbidden**: Modifying applied Flyway migrations; pushing/force-pushing Git branches.
 
-- Do not create useless Bean interfaces.
-- Do not use Lombok, star imports, or `var`.
-- All method parameters are `final`.
-- Use explicit getters, setters, and constructors.
-- Do not expose JPA entities directly from APIs.
-- Do not change public endpoints, security configuration, or applied migrations without explicit approval.
-- Never commit credentials, tokens, or API keys.
-
-## Permission boundaries
-
-Allowed: read files, run tests/checks, edit Java/tests, and add migrations.
-
-Ask first: dependency changes, `SecurityConfig.java`, `JwtFilter.java`, `CorsConfig.java`, application configuration, or destructive schema changes.
-
-Never modify an applied Flyway migration. Never push or force-push without explicit instruction.
-
-## Source of truth
-
-- Build/dependencies: `pom.xml`
-- Runtime configuration: `src/main/resources/application*.yml`
-- API behavior: `docs/API.md` and controller/DTO code
-- Security behavior: `docs/SECURITY.md` and security config code
-- Database behavior: migrations and `docs/DATABASE.md`
-- Business vocabulary: `docs/agents/domain.md`
+## Sources of Truth
+- Dependencies: `pom.xml` | Runtime config: `src/main/resources/application*.yml`
+- API contract: `docs/API.md` | Security: `docs/SECURITY.md` | DB: `docs/DATABASE.md`

@@ -3,6 +3,7 @@ package com.example.blablacar.dto.ride;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.time.LocalDate;
 
@@ -23,7 +24,7 @@ public record RideSearchRequestDTO(
         // Optional filters
         Double maxDistanceStart,
         Double maxDistanceEnd,
-        Integer maxPrice,
+        @PositiveOrZero Integer maxPrice,
         String timeWindow,       // BEFORE_8, 8_12, 12_18, AFTER_18
         Boolean smokingAllowed,
         Boolean petFriendly

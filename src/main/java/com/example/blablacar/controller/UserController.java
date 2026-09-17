@@ -125,7 +125,10 @@ public class UserController {
     public ResponseEntity<Void> deleteMyAccount(
             @AuthenticationPrincipal final UserPrincipal userPrincipal) {
         userService.deleteMyAccount(userPrincipal.getUser().getId());
-        return ResponseEntity.noContent().build();
+        ResponseCookie cookie = ResponseCookie.from("token", "")
+                .httpOnly(true).secure(false)
+                .path("/").sameSite("Lax").maxAge(Duration.ZERO).build();
+        return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
     }
 
     @PatchMapping("users/me")
