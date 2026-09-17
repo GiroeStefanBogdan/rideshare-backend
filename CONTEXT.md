@@ -69,3 +69,42 @@ The booking owner's action strictly before pickup, restoring that booking's seat
 is a no-op. Driver cancellation instead changes only the ride status and releases no seats.
 
 See [domain invariants](docs/agents/domain.md) and [cancellation ADR](docs/adr/0003-use-explicit-cancelled-status.md).
+
+
+## Reviews and reputation
+
+**Review**:
+One directional piece of feedback between two members who shared a ride: a passenger reviewing their
+driver, or a driver reviewing one of their booking passengers. A member keeps at most one review per
+counterpart for life; a later shared ride reopens its window instead of creating another review.
+_Avoid_: Ride review, per-booking review, second review
+
+**Review window**:
+The fourteen days following the passenger's scheduled drop-off during which a review may be submitted
+or amended. It reopens for a strictly later shared drop-off.
+_Avoid_: Deadline, grace period
+
+**Pending / Published**:
+A review's current content is Pending until it becomes public. A review publishes once both
+counterparts have submitted for the same cycle, or once its own window closes. Published reviews are
+visible to everyone and count toward reputation; pending ones are visible only to their author.
+_Avoid_: Draft, unpublished, visible
+
+**Hidden**:
+A published review removed from public sight by moderation. It stops counting toward reputation but is
+not deleted.
+_Avoid_: Deleted review, rejected review
+
+**Rating summary**:
+A member's combined reputation across published, non-hidden received reviews: their arithmetic mean to
+one decimal and the number of reviews. A member without published reviews is unrated, which is not the
+same as a zero score.
+_Avoid_: Stars, driver rating, passenger rating
+
+**Deleted member**:
+The attribution given to a review whose author has deleted their account. Its contribution to the
+counterpart's reputation remains; the deleted member's own listing and reputation do not.
+_Avoid_: Anonymous user, removed review
+
+See [review ADRs](docs/adr/0004-use-lifetime-user-pair-reviews.md) and
+[review invariants](docs/agents/domain.md#reviews).

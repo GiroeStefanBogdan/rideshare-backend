@@ -29,7 +29,8 @@ public class SecurityConfig {
             "/error",
             "/dashboard",
             "/locations/search",
-            "/rides/search"
+            "/rides/search",
+            "/users/*/reviews"
     };
 
     @Bean

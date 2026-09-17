@@ -43,6 +43,38 @@ cancellation marks only its booking `CANCELLED` and adds exactly `booking.seats`
 nothing. Driver cancellation updates only the ride status; bookings, stops, and capacity remain.
 See [domain invariants](agents/domain.md) for eligibility and [API contract](API.md) for errors.
 
+## Review lifecycle and V7
+
+- `V7__review_lifecycle.sql` is additive. It makes `user_reviews.reviewer_id` and `target_user_id`
+  nullable so a deleted account can be anonymized without deleting contributions, and adds the
+  lifecycle columns (`status`, `reviewer_role`, `reviewer_name`, the latest shared ride and drop-off,
+  `window_ends_at`, `submitted_at`, `published_at`, the published content snapshot, moderation and
+  audit columns).
+- Legacy rows predate publication tracking. V7 marks them `PUBLISHED` with their existing score and
+  details as the published snapshot, so their contribution to reputation is unchanged. It does not
+  fabricate a window or a shared ride for them.
+- Uniqueness stays on the directional pair `(reviewer_id, target_user_id)`, which is what makes a
+  review lifetime-per-counterpart rather than per ride. Clearing an anonymized reviewer removes that
+  row from the index, so a re-registered member is not shadowed.
+- Publication and reputation are maintained in the same transaction as the write that triggered them:
+  submission, hiding, restoring, or account anonymization. Rating aggregates are recomputed from
+  published, non-hidden reviews rather than incremented, so they cannot drift.
+- Publication is evaluated lazily when a member's reviews are read or written. A review whose window
+  has closed publishes on the next read of either counterpart, so no scheduler is required for
+  deadlines to be honoured.
+
+### V8
+
+- `V8__complete_review_lifecycle_support.sql` is additive and idempotent. It completes lifecycle
+  support on databases that received older baselines before V7: it adds identity generation for `id`
+  and any missing lifecycle columns (`status`, `reviewer_role`, `reviewer_name`, latest shared
+  ride/drop-off, `window_ends_at`, `submitted_at`, `published_at`, published snapshot, moderation and
+  audit columns).
+- V8 creates the `uc_user_review_pair` unique index on `(reviewer_id, target_user_id)` when missing,
+  so the lifetime one-review-per-counterpart invariant is enforced even on schemas created before V7.
+- Applied to the live `aries` database: Flyway 7 → 8, `BUILD SUCCESS`. No data migration is performed;
+  legacy-row interpretation stays as defined by V7.
+
 ## OSM Catalog Refresh
 - Full Romania refreshes run monthly, with a database advisory lock allowing only one refresh at a time.
 - Each generation records its source, checksum, importer version, timing, validation metrics, and outcome.

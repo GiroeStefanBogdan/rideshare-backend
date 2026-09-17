@@ -47,6 +47,20 @@ Standard errors return 400, 404, or 409. Scheduling/pricing domain failures retu
 | `PATCH` | `/users/me/cars/{carId}` | User | `UpdateUserCarRequest` | 200 `UserCarResponse` |
 | `DELETE`| `/users/me/cars/{carId}` | User | — | 204 |
 
+### Reviews
+| Method | Path | Auth | Request Body | Response | Notes |
+|---|---|---|---|---|---|
+| `POST` | `/reviews` | User | `ReviewRequestDto` | 200 `ReviewResponseDto` | Submit or amend; recipient must share a qualifying ride |
+| `GET` | `/reviews/me` | User | — | 200 `MyReviewsDto` | Reputation, received, authored, and counters awaiting feedback |
+| `GET` | `/reviews/me/eligibility` | User | — | 200 `ReviewEligibilityDto[]` | Server-derived counters and whether each may still be reviewed |
+| `GET` | `/users/{id}/reviews` | Public | — | 200 `UserReviewsDto` | Published reviews and rating summary |
+| `PATCH` | `/admin/reviews/{id}/hide` | Admin | `ReviewModerationRequestDto` | 200 `ReviewResponseDto` | Leaves listings and reputation; retained for moderation |
+| `PATCH` | `/admin/reviews/{id}/restore` | Admin | — | 200 `ReviewResponseDto` | Returns to public sight and reputation |
+
+`409` is returned when the review window has closed, the review is published, it was hidden, or the
+two members share no qualifying ride. Don't count a member as rated when their summary average is
+null; that means unrated, not zero.
+
 ### Rides & Bookings
 | Method | Path | Auth | Request Body | Response | Notes |
 |---|---|---|---|---|---|
@@ -104,7 +118,21 @@ A nonexistent ID or another passenger's ID returns **404** (`Booking Not Found`)
 - **UserRegistrationRequestDto**: `name`, `email`, `password`, `birthday`, `phoneNumber`, `gender`
 - **LoginRequest**: `email`, `password`, `rememberMe`
 - **UserResponseDto**: `id`, `name`, `email`, `role`, `phoneNumber`, `birthday`, `gender`
-- **UserPublicProfileDto**: `id`, `name`, `birthday`, `gender`
+- **UserPublicProfileDto**: `id`, `name`, `birthday`, `gender`, `rating`, `reviewsCount`, `reviews[]`
+  (published reviews with their author name, score, comment, role badge, and publication date)
+- **ReviewRequestDto**: `targetUserId`, `score` (1–5), `details` (optional, ≤1000 characters)
+- **ReviewResponseDto**: `id`, `authorId`, `authorName`, `targetUserId`, `score`, `details`, `role`,
+  `publishedAt`, `edited`, `pending`, `published`, `pendingScore`, `pendingDetails`, `windowEndsAt`,
+  `canSubmit`, `status`. Published fields describe what everyone sees; pending and `canSubmit` are
+  populated only for the author.
+- **RatingSummaryDto**: `average` (null when unrated), `count`
+- **ReviewEligibilityDto**: `targetUserId`, `targetName`, `role`, `rideId`, `dropoffAt`, `windowEndsAt`,
+  `existingReviewId`, `canSubmit`. `canSubmit` stays true after the author's own submission while the
+  counterpart has not submitted and the window is open; the workspace UI hides such entries through a
+  local per-cycle dismissal, not through this flag.
+- **MyReviewsDto**: `summary`, `received[]`, `authored[]`, `toWrite[]`
+- **UserReviewsDto**: `summary`, `reviews[]`
+- **ReviewModerationRequestDto**: `reason` (optional, ≤200 characters)
 - **UpdateUserRequest** (nullable partials): `name`, `email`, `phoneNumber`, `birthday`, `gender`
 - **UserCarRequest** / **UpdateUserCarRequest**: `brand`, `model`, `color`, `year`, `licensePlate`, `numberOfSeats` (`UserCarResponse` adds `id`, `userId`)
 - **LocationResultDTO**: `id`, `type`, `name`, `fullName`, `latitude`, `longitude`, `population`
@@ -135,4 +163,6 @@ A nonexistent ID or another passenger's ID returns **404** (`Booking Not Found`)
 
 ## Contract Gotchas & Gaps
 - `POST /login` returns `{ token, user }` in the response body despite the client being cookie-only.
-- Review endpoints referenced in frontend code do not exist in the backend.
+- `GET /rides/me` returns 4 arrays and GET /users/me does not include review aggregates;
+  the frontend gets reviews/rating from `GET /reviews/me` and `GET /users/{id}/reviews` to avoid
+  touching the auth response shape.

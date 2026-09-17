@@ -1,5 +1,6 @@
 package com.example.blablacar.service.ride;
 
+import com.example.blablacar.dto.review.RatingSummaryDto;
 import com.example.blablacar.dto.ride.BookedRideDTO;
 import com.example.blablacar.dto.ride.HostedRideDTO;
 import com.example.blablacar.dto.ride.MyRidesResponseDTO;
@@ -37,6 +38,7 @@ import com.example.blablacar.repository.ride.BookingRepository;
 import com.example.blablacar.repository.ride.RideRepository;
 import com.example.blablacar.repository.ride.RideStopRepository;
 import com.example.blablacar.repository.user.car.UserCarRepository;
+import com.example.blablacar.service.user.ReviewService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,7 +46,9 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Author: AlexandruDicu
@@ -61,6 +65,7 @@ public class RideService {
     private final RideStopResolver rideStopResolver;
     private final Clock clock;
     private final UserCarRepository userCarRepository;
+    private final ReviewService reviewService;
 
     @Autowired
     public RideService(final RideRepository rideRepository,
@@ -70,7 +75,8 @@ public class RideService {
                        final BookingRepository bookingRepository,
                        final RideStopResolver rideStopResolver,
                        final Clock clock,
-                       final UserCarRepository userCarRepository) {
+                       final UserCarRepository userCarRepository,
+                       final ReviewService reviewService) {
         this.rideRepository = rideRepository;
         this.administrativeUnitRepository = administrativeUnitRepository;
         this.streetRepository = streetRepository;
@@ -79,6 +85,7 @@ public class RideService {
         this.bookingRepository = bookingRepository;
         this.clock = clock;
         this.userCarRepository = userCarRepository;
+        this.reviewService = reviewService;
     }
 
     @Transactional
@@ -180,7 +187,17 @@ public class RideService {
             return List.of();
         }
 
-        return rideRepository.searchRides(request, fromCoords[0], fromCoords[1], toCoords[0], toCoords[1]);
+        Map<Long, RatingSummaryDto> summaries = new HashMap<>();
+        return rideRepository.searchRides(request, fromCoords[0], fromCoords[1], toCoords[0], toCoords[1]).stream()
+                .map(result -> {
+                    RideDriverDTO driver = result.driver();
+                    RatingSummaryDto summary = summaries.computeIfAbsent(driver.id(), reviewService::getRatingSummary);
+                    RideDriverDTO ratedDriver = new RideDriverDTO(driver.id(), driver.name(), driver.avatarUrl(),
+                            summary.average(), summary.count(), driver.smokingAllowed(), driver.petFriendly());
+                    return new RideSearchResultDTO(result.rideId(), ratedDriver, result.seatsAvailable(),
+                            result.totalPrice(), result.startStop(), result.endStop(),
+                            result.distanceToStartKm(), result.distanceToEndKm());
+                }).toList();
     }
 
     @Transactional
@@ -190,7 +207,7 @@ public class RideService {
                 .sorted(Comparator.comparing(RideStop::getStopOrder))
                 .map(this::mapDetailedStop)
                 .toList();
-        return new RideDetailsDTO(ride.getId(), mapDriver(ride.getDriver()), ride.getSeatsTotal(),
+        return new RideDetailsDTO(ride.getId(), mapDriver(ride.getDriver(), new HashMap<>()), ride.getSeatsTotal(),
                 mapVehicle(ride.getCar()), stops);
     }
 
@@ -204,13 +221,14 @@ public class RideService {
                 Comparator.comparing(OffsetDateTime::toInstant));
         Comparator<OffsetDateTime> descending = Comparator.nullsLast(
                 Comparator.comparing(OffsetDateTime::toInstant).reversed());
+        Map<Long, RatingSummaryDto> summaries = new HashMap<>();
         return new MyRidesResponseDTO(
                 bookings.stream().filter(b -> isUpcoming(b.getToStop().getDepartsAt(), now))
                         .sorted(Comparator.comparing((Booking b) -> b.getFromStop().getDepartsAt(), ascending)
-                                .thenComparing(Booking::getId)).map(this::mapBooking).toList(),
+                                .thenComparing(Booking::getId)).map(b -> mapBooking(b, summaries)).toList(),
                 bookings.stream().filter(b -> isPast(b.getToStop().getDepartsAt(), monthAgo, now))
                         .sorted(Comparator.comparing((Booking b) -> b.getToStop().getDepartsAt(), descending)
-                                .thenComparing(Booking::getId)).map(this::mapBooking).toList(),
+                                .thenComparing(Booking::getId)).map(b -> mapBooking(b, summaries)).toList(),
                 rides.stream().filter(r -> isUpcoming(scheduledEnd(r), now))
                         .sorted(Comparator.comparing(Ride::getDepartureAt, ascending).thenComparing(Ride::getId))
                         .map(this::mapHostedRide).toList(),
@@ -294,7 +312,7 @@ public class RideService {
         return bookingRepository.save(booking).getId();
     }
 
-    private BookedRideDTO mapBooking(final Booking booking) {
+    private BookedRideDTO mapBooking(final Booking booking, final Map<Long, RatingSummaryDto> summaries) {
         Ride ride = booking.getRide();
         boolean cancelled = booking.getStatus() != Status.ACTIVE || ride.getStatus() != Status.ACTIVE;
         Status status = cancelled ? Status.CANCELLED : Status.ACTIVE;
@@ -302,7 +320,7 @@ public class RideService {
                 booking.getId(),
                 ride.getId(),
                 status,
-                mapDriver(ride.getDriver()),
+                mapDriver(ride.getDriver(), summaries),
                 booking.getSeats(),
                 booking.getTotalPrice(),
                 mapBasicStop(booking.getFromStop()),
@@ -320,15 +338,12 @@ public class RideService {
                 ride.getSeatsTotal(), stops);
     }
 
-    private RideDriverDTO mapDriver(final User driver) {
+    private RideDriverDTO mapDriver(final User driver, final Map<Long, RatingSummaryDto> summaries) {
         UserInfo userInfo = driver.getUserInfo();
-        Double rating = userInfo == null || userInfo.getRating() == null
-                ? Double.valueOf(0.0) : userInfo.getRating();
-        Integer reviewsCount = userInfo == null || userInfo.getReviewsCount() == null
-                ? Integer.valueOf(0) : userInfo.getReviewsCount();
+        RatingSummaryDto summary = summaries.computeIfAbsent(driver.getId(), reviewService::getRatingSummary);
         boolean smokingAllowed = userInfo != null && userInfo.isCanSmoke();
         boolean petFriendly = userInfo != null && userInfo.isPetFriendly();
-        return new RideDriverDTO(driver.getId(), driver.getName(), null, rating, reviewsCount,
+        return new RideDriverDTO(driver.getId(), driver.getName(), null, summary.average(), summary.count(),
                 smokingAllowed, petFriendly);
     }
 

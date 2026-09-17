@@ -62,7 +62,15 @@ public class UserInfo implements Serializable {
         return rating;
     }
 
+    public void setRating(final Double rating) {
+        this.rating = rating;
+    }
+
     public Integer getReviewsCount() {
         return reviewsCount;
+    }
+
+    public void setReviewsCount(final Integer reviewsCount) {
+        this.reviewsCount = reviewsCount;
     }
 }
