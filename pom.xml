@@ -105,12 +105,12 @@
             <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
-                <version>12.4.0</version>
+                <version>13.7.0</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.flywaydb</groupId>
                         <artifactId>flyway-database-postgresql</artifactId>
-                        <version>12.4.0</version>
+                        <version>13.7.0</version>
                     </dependency>
                 </dependencies>
             </plugin>
