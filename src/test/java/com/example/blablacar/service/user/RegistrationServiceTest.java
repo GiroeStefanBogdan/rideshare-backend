@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RegistrationServiceTest {
 
-    private final RegistrationService service = new RegistrationService(null, null);
+    private final RegistrationService service = new RegistrationService(null, null, null);
 
     @Test
     void validateAgeShouldThrowWhenNull() {

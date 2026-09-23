@@ -13,6 +13,8 @@ public record UserPublicProfileDto(
         String name,
         LocalDate birthday,
         Gender gender,
+        Boolean canSmoke,
+        Boolean petFriendly,
         Double rating,
         Integer reviewsCount,
         List<ReviewResponseDto> reviews
@@ -29,6 +31,8 @@ public record UserPublicProfileDto(
                 user.getName(),
                 user.getBirthday(),
                 user.getGender(),
+                user.getUserInfo() != null ? user.getUserInfo().isCanSmoke() : null,
+                user.getUserInfo() != null ? user.getUserInfo().isPetFriendly() : null,
                 summary.average(),
                 summary.count(),
                 reviews

@@ -2,6 +2,7 @@ package com.example.blablacar.controller;
 
 import com.example.blablacar.dto.auth.LoginRequest;
 import com.example.blablacar.dto.auth.LoginResponse;
+import com.example.blablacar.dto.user.UpdateUserPreferencesRequest;
 import com.example.blablacar.dto.user.UpdateUserRequest;
 import com.example.blablacar.dto.user.UserProfileDto;
 import com.example.blablacar.dto.user.UserPublicProfileDto;
@@ -139,5 +140,14 @@ public class UserController {
         UserResponseDto userResponseDto = userService.updateProfile(authenticatedUser, updateUserRequest);
 
         return ResponseEntity.ok(userResponseDto);
+    }
+
+    @PatchMapping("/users/me/preferences")
+    public ResponseEntity<UserResponseDto> updatePreferences(
+            @AuthenticationPrincipal final UserPrincipal userPrincipal,
+            @RequestBody final UpdateUserPreferencesRequest updateRequest) {
+        User authenticatedUser = userPrincipal.getUser();
+        UserResponseDto response = userService.updatePreferences(authenticatedUser, updateRequest);
+        return ResponseEntity.ok(response);
     }
 }
