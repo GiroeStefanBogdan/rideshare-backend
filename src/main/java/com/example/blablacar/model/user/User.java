@@ -3,6 +3,7 @@ package com.example.blablacar.model.user;
 import com.example.blablacar.model.enums.AuthProvider;
 import com.example.blablacar.model.enums.Gender;
 import com.example.blablacar.model.enums.Role;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -68,11 +69,15 @@ public class User implements Serializable {
     @OneToMany(mappedBy = "targetUser")
     private List<UserReview> reviewsReceived;
 
-    @OneToOne(mappedBy = "user")
+    @OneToOne(mappedBy = "user", cascade = CascadeType.REMOVE)
     private UserInfo userInfo;
 
     public UserInfo getUserInfo() {
         return userInfo;
+    }
+
+    public void setUserInfo(final UserInfo userInfo) {
+        this.userInfo = userInfo;
     }
 
     @OneToMany(mappedBy = "user")
