@@ -13,7 +13,9 @@ public record UserResponseDto(
         Role role,
         String phoneNumber,
         LocalDate birthday,
-        Gender gender
+        Gender gender,
+        Boolean canSmoke,
+        Boolean petFriendly
 ) implements UserProfileDto {
 
     public static UserResponseDto from(User user){
@@ -24,7 +26,9 @@ public record UserResponseDto(
                 user.getRole(),
                 user.getPhoneNumber(),
                 user.getBirthday(),
-                user.getGender()
+                user.getGender(),
+                user.getUserInfo() != null ? user.getUserInfo().isCanSmoke() : null,
+                user.getUserInfo() != null ? user.getUserInfo().isPetFriendly() : null
         );
     }
 }

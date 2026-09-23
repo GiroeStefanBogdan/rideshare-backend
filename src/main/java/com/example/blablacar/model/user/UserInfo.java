@@ -42,6 +42,18 @@ public class UserInfo implements Serializable {
     @Column(name = "reviews_count")
     private Integer reviewsCount;
 
+    public UserInfo() {
+        // No-arg constructor required by JPA
+    }
+
+    public UserInfo(final User user) {
+        this.user = user;
+    }
+
+    public void setUser(final User user) {
+        this.user = user;
+    }
+
     public User getUser() {
         return user;
     }
@@ -70,7 +82,23 @@ public class UserInfo implements Serializable {
         return reviewsCount;
     }
 
+    public void setBio(final String bio) {
+        this.bio = bio;
+    }
+
+    public void setCanSmoke(final boolean canSmoke) {
+        this.canSmoke = canSmoke;
+    }
+
+    public void setPetFriendly(final boolean petFriendly) {
+        this.petFriendly = petFriendly;
+    }
+
     public void setReviewsCount(final Integer reviewsCount) {
         this.reviewsCount = reviewsCount;
+    }
+
+    public void setId(final long id) {
+        this.id = id;
     }
 }
